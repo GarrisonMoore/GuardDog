@@ -1,0 +1,3 @@
+Mar 20 21:44:20 SR-SVR-01 WinEvt: [4624] Login Success: User=Garrison
+Mar 20 21:44:22 RANCH-GATE-PI auth: Failed password for invalid user admin
+Mar 20 21:44:25 DATSUN-GARAGE-PC system: Oil cooler sensor reporting offline
