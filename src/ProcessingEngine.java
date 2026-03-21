@@ -54,24 +54,12 @@ public class ProcessingEngine {
         Matcher matcher = LOG_PATTERN.matcher(rawLine);
         if (matcher.find()) {
             try {
-                String timeStr = matcher.group(1).trim();
-                // Use a temporary object to hold the Month/Day/Time
-                DateTimeFormatter tempFormatter = DateTimeFormatter.ofPattern("MMM d HH:mm:ss", Locale.ENGLISH);
-
-                // We have to parse it as a TemporalAccessor first because it lacks a year
-                java.time.temporal.TemporalAccessor accessor = tempFormatter.parse(timeStr);
-                int month = accessor.get(java.time.temporal.ChronoField.MONTH_OF_YEAR);
-                int day = accessor.get(java.time.temporal.ChronoField.DAY_OF_MONTH);
-                int hour = accessor.get(java.time.temporal.ChronoField.HOUR_OF_DAY);
-                int minute = accessor.get(java.time.temporal.ChronoField.MINUTE_OF_HOUR);
-                int second = accessor.get(java.time.temporal.ChronoField.SECOND_OF_MINUTE);
-
-                // Now build the full LocalDateTime with the current year
-                LocalDateTime ldt = LocalDateTime.of(LocalDateTime.now().getYear(), month, day, hour, minute, second);
-                long epochTime = ldt.atZone(ZoneId.systemDefault()).toEpochSecond();
+                // ISO 8601 is much easier to parse!
+                String timeStr = matcher.group(1);
+                long epochTime = java.time.OffsetDateTime.parse(timeStr).toEpochSecond();
 
                 String host = matcher.group(2);
-                String msg = matcher.group(4);
+                String msg = matcher.group(3);
 
                 // --- NEW SEVERITY SCANNER ---
                 String severity = "INFO";
@@ -89,11 +77,10 @@ public class ProcessingEngine {
                 // ... indexing logic ...
                 TimeIndex.computeIfAbsent(epochTime, k -> new ArrayList<>()).add(logObject);
                 HostIndex.computeIfAbsent(host, k -> new ArrayList<>()).add(logObject);
-                System.out.println("Indexed log from: " + host + " [" + epochTime + "]");
 
             } catch (Exception e) {
-                // Print the error so you can see WHY it's skipping
-                System.err.println("Skipping malformed log: " + rawLine + " | Error: " + e.getMessage());
+                // Log it to terminal so you can see if the date parser is still mad
+                System.err.println("Parse Error: " + e.getMessage());
             }
         }
     }
