@@ -1,7 +1,7 @@
 import javax.swing.*;
 import java.io.BufferedReader;
 import java.io.FileReader;
-import java.io.InputStreamReader;
+import java.nio.file.*;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -10,44 +10,83 @@ import com.formdev.flatlaf.FlatDarkLaf;
 public class ProcessingEngine {
 
     private static GUI myGui;
-    private static HashMap<String, List<LogObject>> HostIndex = new HashMap<>();
-    private static TreeMap<Long, List<LogObject>> TimeIndex = new TreeMap<>();
+    private static final HashMap<String, List<LogObject>> HostIndex = new HashMap<>();
+    private static final TreeMap<Long, List<LogObject>> TimeIndex = new TreeMap<>();
 
     // Windows ISO Log Pattern
     private static final Pattern LOG_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[^\\s]*)\\s+(\\S+)\\s+.*:\\s+(.*)$");
 
+    private static final Path LOG_FILE = Paths.get("/var/log/windows_5141.log");
+
     public static void main(String[] args) {
         FlatDarkLaf.setup();
 
-        // 1. LAUNCH GUI FIRST
         SwingUtilities.invokeLater(() -> {
             myGui = new GUI();
             myGui.setHosts(HostIndex.keySet());
         });
 
-        // 2. BACKGROUND THREAD FOR THE PIPE (Stops the freezing!)
-        Thread logThread = new Thread(() -> {
-            try (BufferedReader reader = new BufferedReader(new FileReader("/var/log/windows_5141.log"))){
-            //try (BufferedReader reader = new BufferedReader(new InputStreamReader(System.in))) {
-                String line;
-                while ((line = reader.readLine()) != null) {
-                    parseAndProcess(line);
-
-                    // 3. MUST update the GUI safely on the Event Dispatch Thread
-                    if (myGui != null) {
-                        SwingUtilities.invokeLater(() -> {
-                            myGui.setHosts(HostIndex.keySet());
-                            myGui.refreshDisplay(); // THIS creates the Live Tail effect!
-                        });
-                    }
-                }
-            } catch (Exception e) {
-                System.err.println("Pipe closed.");
-            }
-        });
-
+        Thread logThread = new Thread(() -> watchLogFile(LOG_FILE), "log-watcher");
         logThread.setDaemon(true);
         logThread.start();
+    }
+
+    private static void watchLogFile(Path file) {
+        long lastPosition = 0;
+
+        try {
+            if (Files.exists(file)) {
+                try (BufferedReader reader = new BufferedReader(new FileReader(file.toFile()))) {
+                    String line;
+                    while ((line = reader.readLine()) != null) {
+                        parseAndProcess(line);
+                    }
+                }
+                lastPosition = Files.size(file);
+            }
+
+            while (true) {
+                long currentSize = Files.exists(file) ? Files.size(file) : 0;
+
+                if (currentSize < lastPosition) {
+                    // File was truncated/rotated; start over
+                    lastPosition = 0;
+                }
+
+                if (currentSize > lastPosition) {
+                    try (FileReader fr = new FileReader(file.toFile())) {
+                        long skipped = fr.skip(lastPosition);
+                        while (skipped < lastPosition) {
+                            long more = fr.skip(lastPosition - skipped);
+                            if (more <= 0) break;
+                            skipped += more;
+                        }
+
+                        try (BufferedReader reader = new BufferedReader(fr)) {
+                            String line;
+                            while ((line = reader.readLine()) != null) {
+                                parseAndProcess(line);
+                                scheduleGuiRefresh();
+                            }
+                        }
+                    }
+                    lastPosition = currentSize;
+                }
+
+                Thread.sleep(500);
+            }
+        } catch (Exception e) {
+            System.err.println("Log watcher stopped: " + e.getMessage());
+        }
+    }
+
+    private static void scheduleGuiRefresh() {
+        if (myGui != null) {
+            SwingUtilities.invokeLater(() -> {
+                myGui.setHosts(HostIndex.keySet());
+                myGui.refreshDisplay();
+            });
+        }
     }
 
     private static void parseAndProcess(String rawLine) {
@@ -72,7 +111,6 @@ public class ProcessingEngine {
         }
     }
 
-    // --- KEEP YOUR EXISTING GETTER METHODS BELOW ---
     public static List<LogObject> getLogsBySeverity(String level) {
         List<LogObject> filtered = new ArrayList<>();
         for (List<LogObject> logList : TimeIndex.values()) {
