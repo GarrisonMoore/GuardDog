@@ -69,7 +69,7 @@ public class GUI extends JFrame {
                 if (host.toLowerCase().contains(query)) listModel.addElement(host);
             }
         } else if ("Category".equals(currentPivot)) {
-            String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED", "ERRORS", "WARNINGS"};
+            String[] categories = {"ERRORS", "WARNINGS", "AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED"};
             for (String cat : categories) {
                 if (cat.toLowerCase().contains(query)) listModel.addElement(cat);
             }
@@ -161,7 +161,7 @@ public class GUI extends JFrame {
             if ("Hostnames".equals(selected)) {
                 for (String host : IndexingEngine.getHostKeys()) listModel.addElement(host);
             } else if ("Category".equals(selected)) {
-                String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED", "ERRORS", "WARNINGS"};
+                String[] categories = {"ERRORS", "WARNINGS", "AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED"};
                 for (String cat : categories) listModel.addElement(cat);
             } else if ("Severity".equals(selected)) {
                 listModel.addElement("INFO");
