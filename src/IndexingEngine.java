@@ -7,7 +7,6 @@ import java.util.*;
 
 public class IndexingEngine{
 
-    static GUI myGui;
     static final HashMap<String, List<LogObject>> HostIndex = new HashMap<>();
     static final TreeMap<java.time.LocalDate, TreeMap<java.time.LocalTime, List<LogObject>>> TimeIndex = new TreeMap<>();
     static void tailFile(Path file) {
@@ -87,6 +86,15 @@ public class IndexingEngine{
             }
         }
         return results;
+    }
+
+    public static Set<java.time.LocalDate> getAvailableDays() {
+        return TimeIndex.keySet();
+    }
+
+    public static Set<java.time.LocalTime> getAvailableTimes(java.time.LocalDate day) {
+        TreeMap<java.time.LocalTime, List<LogObject>> byTime = TimeIndex.get(day);
+        return byTime != null ? byTime.keySet() : Collections.emptySet();
     }
 
     public static List<LogObject> getLogsForHost(String host) {

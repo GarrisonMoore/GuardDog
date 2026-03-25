@@ -74,6 +74,10 @@ public class SyslogParser implements LogParser {
                         .computeIfAbsent(time, k -> new ArrayList<>())
                         .add(logObject);
 
+                if (GUI.getMyGui() != null) {
+                    GUI.getMyGui().appendLiveLog(logObject);
+                }
+
                 // compute time index and host index
                 //IndexingEngine.TimeIndex.computeIfAbsent(epochTime, k -> new ArrayList<>()).add(logObject);
                 IndexingEngine.HostIndex.computeIfAbsent(host, k -> new ArrayList<>()).add(logObject);

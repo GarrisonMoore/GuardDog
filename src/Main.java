@@ -13,8 +13,7 @@ public class Main extends IndexingEngine {
         FlatDarkLaf.setup();
 
         SwingUtilities.invokeLater(() -> {
-            myGui = new GUI();
-            myGui.setHosts(IndexingEngine.HostIndex.keySet());
+            new GUI();
         });
 
         Thread logThread = new Thread(() -> tailFile(LOG_FILE), "log-tail");
@@ -26,11 +25,11 @@ public class Main extends IndexingEngine {
 
     private static void scheduleGuiRefresh() {
         new javax.swing.Timer(500, e -> {
-
-            if (myGui != null) {
+            GUI g = GUI.getMyGui();
+            if (g != null) {
                 SwingUtilities.invokeLater(() -> {
-                    myGui.setHosts(HostIndex.keySet());
-                    myGui.refreshDisplay();
+                    g.setHosts(HostIndex.keySet());
+                    g.refreshDisplay();
                 });
             }
         }).start();
