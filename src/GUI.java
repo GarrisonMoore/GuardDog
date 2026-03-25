@@ -112,26 +112,34 @@ public class GUI extends JFrame {
 
         // Now it is safe to attach the listener
         pivotBox.addActionListener(e -> {
-            String selected = (String) pivotBox.getSelectedItem();
+            String selectedPivot = (String) pivotBox.getSelectedItem();
+            String query = searchField.getText().trim();
             listModel.clear();
 
-            if ("Hostnames".equals(selected)) {
+            if ("Hostnames".equals(selectedPivot)) {
                 for (String host : IndexingEngine.getHostKeys()) {
-                    listModel.addElement(host);
+                    if (host.toLowerCase().contains(query.toLowerCase())) {
+                        listModel.addElement(host);
+                    }
                 }
-            } else if ("Category".equals(selected)) {
-                listModel.addElement("AUTH EVENTS");
-                listModel.addElement("AUDIT");
-                listModel.addElement("GROUP POLICY");
-                listModel.addElement("UNCATEGORIZED");
-            } else if ("Severity".equals(selected)) {
-                listModel.addElement("INFO");
-                listModel.addElement("WARN");
-                listModel.addElement("CRIT");
-            } else if ("Time Window".equals(selected)) {
-                listModel.addElement("Last 5 Minutes");
-                listModel.addElement("Last 30 Minutes");
-                listModel.addElement("Last Hour");
+            } else if ("Category".equals(selectedPivot)) {
+                String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED"};
+                for (String cat : categories) {
+                    if (cat.toLowerCase().contains(query.toLowerCase())) {
+                        listModel.addElement(cat);
+                    }
+                }
+            } else if ("Severity".equals(selectedPivot)) {
+                String[] severities = {"INFO", "WARN", "CRIT"};
+                for (String sev : severities) {
+                    if (sev.toLowerCase().contains(query.toLowerCase())) {
+                        listModel.addElement(sev);
+                    }
+                }
+            } else if ("Time".equals(selectedPivot)) {
+                if (!query.isBlank()) {
+                    listModel.addElement(query);
+                }
             }
         });
 
@@ -218,22 +226,8 @@ public class GUI extends JFrame {
             case "Severity":
                 logs = IndexingEngine.getLogsBySeverity(selected);
                 break;
-            case "Time Window":
-                int mins = 0;
-                if (selected.equalsIgnoreCase("Last Hour")) {
-                    mins = 60;
-                } else {
-                    String numericOnly = selected.replaceAll("\\D+", "");
-                    if (!numericOnly.isEmpty()) mins = Integer.parseInt(numericOnly);
-                }
-                if (mins > 0) {
-                    java.time.LocalDate day = java.time.LocalDate.now();
-                    java.time.LocalTime end = java.time.LocalTime.now();
-                    java.time.LocalTime start = end.minusMinutes(mins);
-
-                    logs = IndexingEngine.getLogsByDayAndTime(day, start, end);
-                    break;
-                }
+            case "Time":
+               logs = searchByDateTime(selected);
         }
 
         StyledDocument doc = logDisplay.getStyledDocument();
@@ -244,6 +238,26 @@ public class GUI extends JFrame {
         }
 
         lastRenderedCount = logs.size();
+    }
+
+    private List<LogObject> searchByDateTime(String query) {
+        try {
+            // format: yyyy-MM-dd HH:mm-HH:mm
+            String[] parts = query.split("\\s+");
+            if (parts.length != 2) return new ArrayList<>();
+
+            java.time.LocalDate day = java.time.LocalDate.parse(parts[0]);
+
+            String[] timeParts = parts[1].split("-");
+            if (timeParts.length != 2) return new ArrayList<>();
+
+            java.time.LocalTime start = java.time.LocalTime.parse(timeParts[0]);
+            java.time.LocalTime end = java.time.LocalTime.parse(timeParts[1]);
+
+            return IndexingEngine.getLogsByDayAndTime(day, start, end);
+        } catch (Exception ignored) {
+            return new ArrayList<>();
+        }
     }
 
     private void appendColoredLog(StyledDocument doc, LogObject log) {
