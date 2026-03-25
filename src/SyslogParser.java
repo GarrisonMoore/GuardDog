@@ -21,9 +21,15 @@ public class SyslogParser implements LogParser {
                 String host = m.group(2);
                 String msg = m.group(3);
 
+                String lowerMsg = msg.toLowerCase();
+                // throw away windows noise
+                if (lowerMsg.contains("The locale specific resource for the desired message is not present")) {
+                    return null;
+                }
+
+                // --- CATEGORIZATION ---
                 String severity = "INFO";
                 String category = "UNCATEGORIZED";
-                String lowerMsg = msg.toLowerCase();
                 // categorize severities
                 if (lowerMsg.contains("fail") || lowerMsg.contains("error")) severity = "CRIT";
                 if (lowerMsg.contains("warn") || lowerMsg.contains("timeout")) severity = "WARN";
@@ -33,8 +39,9 @@ public class SyslogParser implements LogParser {
                 if (lowerMsg.contains("audit") || lowerMsg.contains("auditd")) category = "AUDIT";
                 if (lowerMsg.contains("group") || lowerMsg.contains("group policy")) category = "GROUP POLICY";
 
-
+                // create a new log object for any logs that fit the above categories
                 LogObject logObject = new LogObject(epochTime, host, severity, category, msg);
+                // compute time index and host index
                 IndexingEngine.TimeIndex.computeIfAbsent(epochTime, k -> new ArrayList<>()).add(logObject);
                 IndexingEngine.HostIndex.computeIfAbsent(host, k -> new ArrayList<>()).add(logObject);
             } catch (Exception ignored) {
@@ -44,27 +51,3 @@ public class SyslogParser implements LogParser {
         return null;
     }
 }
-
-//    public LogObject parse(String rawline) {
-//        Matcher matcher = LOG_PATTERN.matcher(rawline);
-//        if (matcher.find()) {
-//            try {
-//                long epochTime = java.time.OffsetDateTime.parse(matcher.group(1)).toEpochSecond();
-//                String host = matcher.group(2);
-//                String msg = matcher.group(3);
-//
-//                String severity = "INFO";
-//                String lowerMsg = msg.toLowerCase();
-//                if (lowerMsg.contains("fail") || lowerMsg.contains("error")) severity = "CRIT";
-//                if (lowerMsg.contains("warn") || lowerMsg.contains("timeout")) severity = "WARN";
-//
-//                LogObject logObject = new LogObject(epochTime, host, severity, msg);
-//                IndexingEngine.TimeIndex.computeIfAbsent(epochTime, k -> new ArrayList<>()).add(logObject);
-//                IndexingEngine.HostIndex.computeIfAbsent(host, k -> new ArrayList<>()).add(logObject);
-//            } catch (Exception ignored) {
-//                // ignore parse errors
-//            }
-//        }
-//        return null;
-//    }
-
