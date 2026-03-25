@@ -12,7 +12,7 @@ public class GUI extends JFrame {
     private final JList<String> hostList = new JList<>(listModel);
     private final JTextArea logDisplay = new JTextArea();
 
-    private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames", "Severity", "Time Window"});
+    private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames","Category","Severity", "Time Window"});
 
     public GUI() {
         setTitle("Guard Dog NOC - In-memory Indexer and Datastore");
@@ -64,6 +64,13 @@ public class GUI extends JFrame {
                             listModel.addElement(host);
                         }
                     }
+                }else if ("Category".equals(currentPivot)) {
+                    String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED"};
+                    for (String cat : categories) {
+                        if (cat.toLowerCase().contains(query)) {
+                            listModel.addElement(cat);
+                        }
+                    }
                 } else if ("Severity".equals(currentPivot)) {
                     String[] severities = {"INFO", "WARN", "CRIT"};
                     for (String sev : severities) {
@@ -98,6 +105,12 @@ public class GUI extends JFrame {
                 for (String host : IndexingEngine.getHostKeys()) {
                     listModel.addElement(host);
                 }
+
+            }else if ("Category".equals(selected)) {
+                listModel.addElement("AUTH EVENTS");
+                listModel.addElement("AUDIT");
+                listModel.addElement("GROUP POLICY");
+                listModel.addElement("UNCATEGORIZED");
             } else if ("Severity".equals(selected)) {
                 listModel.addElement("INFO");
                 listModel.addElement("WARN");
