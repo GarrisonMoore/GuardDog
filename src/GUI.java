@@ -6,9 +6,6 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.io.RandomAccessFile;
 import java.time.LocalDate;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -20,35 +17,52 @@ import java.util.*;
 public class GUI extends JFrame {
     private static GUI myGui;
 
+    // Helper method to format timestamps
     public static GUI getMyGui() {
         return myGui;
     }
 
+
+
+    // A model used to manage and store a list of strings displayed in GUI components, such as JList.
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
+    // A graphical list component that displays a collection of hostnames or IPs
     private final JList<String> hostList = new JList<>(listModel);
+    // A JTextPane component used to display the currently selected log entry in the GUI.
     private final JTextPane selectedLogDisplay = new JTextPane();
+    // Represents a text pane component within the GUI for displaying live log updates.
     private final JTextPane liveLogDisplay = new JTextPane();
+    // A tabbed pane used to display logs in different categories or views.
     private final JTabbedPane logTabs = new JTabbedPane();
+    // Represents a button used for navigating back within the GUI.
     private final JButton backButton = new JButton("↩");
+    // A text field used to input and search logs based on user-provided criteria.
     private final JTextField logSearchField = new JTextField();
+    // Holds a list of live log entries currently being buffered in the GUI.
     private final List<LogObject> liveLogsBuffer = Collections.synchronizedList(new ArrayList<>());
 
+    // Colors for GUI
     private final Color ACCENT_COLOR = new Color(0, 150, 255); // Electric Blue
     private final Color PANEL_BG = new Color(25, 25, 25);
     private final Color LOG_BG = new Color(15, 15, 15);
     private final Color LIST_BG = new Color(20, 20, 20);
     private final Color BORDER_COLOR = new Color(40, 40, 40);
 
+    // Combo box for drop down category selection
     private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames", "Category", "Severity", "Time"});
+    // A text field for searching logs
     private final JTextField searchField = new JTextField();
 
+    // Used for refreshing the display
     private int lastRenderedCount = 0;
     private String lastSelectedKey = null;
 
+    // Used for filtering logs based on time and day
     private enum BrowseMode { DAYS, TIMES, OTHER }
     private BrowseMode browseMode = BrowseMode.OTHER;
     private java.time.LocalDate selectedDay = null;
 
+    // This method enables the user to search for logs based on a specified query.
     private void applySidebarFilter() {
         String query = searchField.getText().trim().toLowerCase();
         String currentPivot = (String) pivotBox.getSelectedItem();
@@ -83,6 +97,7 @@ public class GUI extends JFrame {
         }
     }
 
+    // GUI constructor
     public GUI() {
         setTitle("Guard Dog Processor - Log Management Console");
         setSize(1300, 850);
@@ -147,30 +162,30 @@ public class GUI extends JFrame {
             }
         });
 
+        // event listeners for search field and log search field
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { applySidebarFilter(); }
             public void removeUpdate(DocumentEvent e) { applySidebarFilter(); }
             public void changedUpdate(DocumentEvent e) { applySidebarFilter(); }
         });
-
         logSearchField.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { triggerLogFilter(); }
             public void removeUpdate(DocumentEvent e) { triggerLogFilter(); }
             public void changedUpdate(DocumentEvent e) { triggerLogFilter(); }
         });
-
+        // event listener for hosts
         hostList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 refreshDisplay();
             }
         });
-
         pivotBox.addActionListener(e -> {
             String selected = (String) pivotBox.getSelectedItem();
             listModel.clear();
             selectedDay = null;
             browseMode = BrowseMode.OTHER;
 
+            // searching logic
             if ("Hostnames".equals(selected)) {
                 for (String host : IndexingEngine.getHostKeys()) listModel.addElement(host);
             } else if ("Category".equals(selected)) {
@@ -199,7 +214,6 @@ public class GUI extends JFrame {
         topBar.add(leftControls, BorderLayout.WEST);
         topBar.add(searchField, BorderLayout.CENTER);
 
-        // Sidebar
         JPanel sidePanel = new JPanel(new BorderLayout(0, 10));
         sidePanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 10));
         sidePanel.setPreferredSize(new Dimension(300, 0));
@@ -220,7 +234,6 @@ public class GUI extends JFrame {
         sidePanel.add(navHeader, BorderLayout.NORTH);
         sidePanel.add(listScroll, BorderLayout.CENTER);
 
-        // Center Panel
         JPanel centerPanel = new JPanel(new BorderLayout());
         centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 20));
 
@@ -231,7 +244,6 @@ public class GUI extends JFrame {
         logTabs.setBorder(null);
         logTabs.setOpaque(false);
 
-        // Place search bar to the right of the tab headers
         JPanel logSearchWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         logSearchWrap.setOpaque(false);
         logSearchWrap.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
@@ -264,6 +276,7 @@ public class GUI extends JFrame {
         loadDays();
     }
 
+    // Configures the appearance of the log display pane
     private void configureLogPane(JTextPane pane, Font font) {
         pane.setFont(font);
         pane.setBackground(LOG_BG);
@@ -273,6 +286,7 @@ public class GUI extends JFrame {
         pane.setMargin(new Insets(8, 8, 8, 8));
     }
 
+    // loads available days for browsing logs
     private void loadDays() {
         browseMode = BrowseMode.DAYS;
         listModel.clear();
@@ -281,6 +295,7 @@ public class GUI extends JFrame {
         }
     }
 
+    // loads available times for a given day
     private void loadTimesForDay(LocalDate day) {
         browseMode = BrowseMode.TIMES;
         selectedDay = day;
@@ -291,11 +306,13 @@ public class GUI extends JFrame {
         backButton.setEnabled(true);
     }
 
+    // triggers log filtering based on current selection
     private void triggerLogFilter() {
         refreshDisplay();
         renderLogsToPane(liveLogDisplay, new ArrayList<>(liveLogsBuffer));
     }
 
+    // sets the available hosts for filtering
     public void setHosts(Set<String> hosts) {
         if (!"Hostnames".equals(pivotBox.getSelectedItem())) return;
         String currentSelection = hostList.getSelectedValue();
@@ -305,6 +322,7 @@ public class GUI extends JFrame {
         }
     }
 
+    // refreshes the display
     public void refreshDisplay() {
         String selected = hostList.getSelectedValue();
         String currentPivot = (String) pivotBox.getSelectedItem();
@@ -351,6 +369,7 @@ public class GUI extends JFrame {
         renderLogsToPane(selectedLogDisplay, logs);
     }
 
+    // appends incoming logs to the live log display pane
     public void appendLiveLog(LogObject log) {
         liveLogsBuffer.add(log);
         if (liveLogsBuffer.size() > 2000) {
@@ -366,6 +385,7 @@ public class GUI extends JFrame {
         });
     }
 
+    // renders incoming logs to the selected log display pane
     private void renderLogsToPane(JTextPane pane, List<LogObject> logs) {
         StyledDocument doc = pane.getStyledDocument();
         pane.setText("");
@@ -377,6 +397,7 @@ public class GUI extends JFrame {
         }
     }
 
+    // styling the log text
     private void appendColoredLog(StyledDocument doc, LogObject log) {
         try {
             String timestamp = formatTimestamp(log);
@@ -417,6 +438,7 @@ public class GUI extends JFrame {
         }
     }
 
+    // helper to format timestamps
     private String formatTimestamp(LogObject log) {
         java.time.LocalDateTime date = java.time.LocalDateTime.ofInstant(
                 java.time.Instant.ofEpochSecond(log.getTimestamp()),

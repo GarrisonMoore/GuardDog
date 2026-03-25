@@ -1,5 +1,6 @@
 import java.util.HashMap;
 
+///  example JSON object class
 public class JSONobject {
     private long timestamp;
     private String source;

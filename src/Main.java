@@ -8,10 +8,13 @@ import java.util.Objects;
 
 public class Main extends IndexingEngine {
 
+    // Path to the Windows Event Log file
     private static final Path LOG_FILE = Paths.get("/var/log/windows_5141.log");
 
     public static void main(String[] args) throws InterruptedException {
+        // Using FlatDarkLaf for a modern look
         FlatDarkLaf.setup();
+
         // Global UI tweaks for a modern, cleaner look
         UIManager.put("Component.arc", 12);
         UIManager.put("TextComponent.arc", 12);
@@ -38,6 +41,7 @@ public class Main extends IndexingEngine {
             new GUI();
         });
 
+        // Start indexing the log file in a separate thread
         Thread logThread = new Thread(() -> tailFile(LOG_FILE), "log-tail");
         logThread.setDaemon(true);
         logThread.start();
@@ -45,6 +49,7 @@ public class Main extends IndexingEngine {
         scheduleGuiRefresh();
     }
 
+    // Schedule a GUI refresh every 500ms
     private static void scheduleGuiRefresh() {
         new javax.swing.Timer(500, e -> {
             GUI g = GUI.getMyGui();

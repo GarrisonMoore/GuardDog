@@ -8,17 +8,25 @@ public class SyslogParser implements LogParser {
     // RFC-5424 format Regex Tokenizer
     private static final Pattern LOG_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[^\\s]*)\\s+(\\S+)\\s+.*:\\s+(.*)$");
 
+    // override the canParse method in the LogParser interface (do this for any new parser)
     @Override
     public boolean canParse(String rawline) {
+        // make sure the line matches the RFC-5424 format
         return rawline.matches("^\\d{4}-\\d{2}.*");
     }
 
+    // override the parse method in the LogParser interface (do this for any new parser)
+    // parse the line using the RFC-5424 format
     @Override
     public LogObject parse(String rawline) {
+        // make sure the line matches the RFC-5424 format
         Matcher m = LOG_PATTERN.matcher(rawline);
+        // initialize the log object
         LogObject logObject = null;
+        // if the line matches the RFC-5424 format, parse it
         if (m.find()) {
             try {
+                // extract the timestamp, host, and message
                 long epochTime = java.time.OffsetDateTime.parse(m.group(1)).toEpochSecond();
                 String host = m.group(2);
                 String msg = m.group(3);
@@ -63,26 +71,26 @@ public class SyslogParser implements LogParser {
                 // create a new log object for any logs that fit the above categories
                 logObject = new LogObject(epochTime, host, severity, category, msg);
 
+                // convert epoch time to local date and time
                 java.time.LocalDateTime dateTime = java.time.LocalDateTime.ofInstant(
                         java.time.Instant.ofEpochSecond(epochTime),
                         java.time.ZoneId.systemDefault()
                 );
-
                 java.time.LocalDate day = dateTime.toLocalDate();
                 java.time.LocalTime time = dateTime.toLocalTime().withSecond(0).withNano(0);
 
-                // AI shit- maybe work maybe not
+                // compute time index
                 IndexingEngine.TimeIndex
                         .computeIfAbsent(day, k -> new TreeMap<>())
                         .computeIfAbsent(time, k -> new ArrayList<>())
                         .add(logObject);
 
+                // append to live log display pane
                 if (GUI.getMyGui() != null) {
                     GUI.getMyGui().appendLiveLog(logObject);
                 }
 
-                // compute time index and host index
-                //IndexingEngine.TimeIndex.computeIfAbsent(epochTime, k -> new ArrayList<>()).add(logObject);
+                // compute host index
                 IndexingEngine.HostIndex.computeIfAbsent(host, k -> new ArrayList<>()).add(logObject);
 
             } catch (Exception e) {
