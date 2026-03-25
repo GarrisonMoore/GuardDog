@@ -25,7 +25,7 @@ public class SyslogParser implements LogParser {
 
                 // throw away windows noise first
                 if (lowerMsg.contains("the locale specific resource for the desired message is not present")) {
-                    return null;
+                    return new LogObject(epochTime, host, "INFO", "UNCATEGORIZED", "computer fart noises");
                 }
 
                 // --- CATEGORIZATION ---
