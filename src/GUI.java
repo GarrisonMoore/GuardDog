@@ -38,6 +38,7 @@ public class GUI extends JFrame {
     private final Color BORDER_COLOR = new Color(40, 40, 40);
 
     private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames", "Category", "Severity", "Time"});
+    private final JTextField searchField = new JTextField();
 
     private int lastRenderedCount = 0;
     private String lastSelectedKey = null;
@@ -45,6 +46,40 @@ public class GUI extends JFrame {
     private enum BrowseMode { DAYS, TIMES, OTHER }
     private BrowseMode browseMode = BrowseMode.OTHER;
     private java.time.LocalDate selectedDay = null;
+
+    private void applySidebarFilter() {
+        String query = searchField.getText().trim().toLowerCase();
+        String currentPivot = (String) pivotBox.getSelectedItem();
+        listModel.clear();
+
+        if ("Time".equals(currentPivot)) {
+            if (browseMode == BrowseMode.DAYS) {
+                for (LocalDate day : IndexingEngine.getAvailableDays()) {
+                    String value = day.toString();
+                    if (value.contains(query)) listModel.addElement(value);
+                }
+            } else if (browseMode == BrowseMode.TIMES && selectedDay != null) {
+                for (LocalTime time : IndexingEngine.getAvailableTimes(selectedDay)) {
+                    String value = time.toString().substring(0, 5);
+                    if (value.contains(query)) listModel.addElement(value);
+                }
+            }
+        } else if ("Hostnames".equals(currentPivot)) {
+            for (String host : IndexingEngine.getHostKeys()) {
+                if (host.toLowerCase().contains(query)) listModel.addElement(host);
+            }
+        } else if ("Category".equals(currentPivot)) {
+            String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED", "ERRORS", "WARNINGS"};
+            for (String cat : categories) {
+                if (cat.toLowerCase().contains(query)) listModel.addElement(cat);
+            }
+        } else if ("Severity".equals(currentPivot)) {
+            String[] severities = {"INFO", "WARN", "CRIT"};
+            for (String sev : severities) {
+                if (sev.toLowerCase().contains(query)) listModel.addElement(sev);
+            }
+        }
+    }
 
     public GUI() {
         setTitle("Guard Dog Processor - Log Management Console");
@@ -83,7 +118,6 @@ public class GUI extends JFrame {
         configureLogPane(selectedLogDisplay, monoFont);
         configureLogPane(liveLogDisplay, monoFont);
 
-        JTextField searchField = new JTextField();
         searchField.setFont(mainFont);
         searchField.putClientProperty("JTextField.placeholderText", "Search logs...");
         searchField.putClientProperty("JComponent.outline", ACCENT_COLOR);
@@ -107,43 +141,9 @@ public class GUI extends JFrame {
         });
 
         searchField.getDocument().addDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { filterSidebar(searchField); }
-            public void removeUpdate(DocumentEvent e) { filterSidebar(searchField); }
-            public void changedUpdate(DocumentEvent e) { filterSidebar(searchField); }
-
-            private void filterSidebar(JTextField field) {
-                String query = field.getText().trim().toLowerCase();
-                String currentPivot = (String) pivotBox.getSelectedItem();
-                listModel.clear();
-
-                if ("Time".equals(currentPivot)) {
-                    if (browseMode == BrowseMode.DAYS) {
-                        for (LocalDate day : IndexingEngine.getAvailableDays()) {
-                            String value = day.toString();
-                            if (value.contains(query)) listModel.addElement(value);
-                        }
-                    } else if (browseMode == BrowseMode.TIMES && selectedDay != null) {
-                        for (LocalTime time : IndexingEngine.getAvailableTimes(selectedDay)) {
-                            String value = time.toString().substring(0, 5);
-                            if (value.contains(query)) listModel.addElement(value);
-                        }
-                    }
-                } else if ("Hostnames".equals(currentPivot)) {
-                    for (String host : IndexingEngine.getHostKeys()) {
-                        if (host.toLowerCase().contains(query)) listModel.addElement(host);
-                    }
-                } else if ("Category".equals(currentPivot)) {
-                    String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED", "ERRORS", "WARNINGS"};
-                    for (String cat : categories) {
-                        if (cat.toLowerCase().contains(query)) listModel.addElement(cat);
-                    }
-                } else if ("Severity".equals(currentPivot)) {
-                    String[] severities = {"INFO", "WARN", "CRIT"};
-                    for (String sev : severities) {
-                        if (sev.toLowerCase().contains(query)) listModel.addElement(sev);
-                    }
-                }
-            }
+            public void insertUpdate(DocumentEvent e) { applySidebarFilter(); }
+            public void removeUpdate(DocumentEvent e) { applySidebarFilter(); }
+            public void changedUpdate(DocumentEvent e) { applySidebarFilter(); }
         });
 
         hostList.addListSelectionListener(e -> {
@@ -269,9 +269,8 @@ public class GUI extends JFrame {
     public void setHosts(Set<String> hosts) {
         if (!"Hostnames".equals(pivotBox.getSelectedItem())) return;
         String currentSelection = hostList.getSelectedValue();
-        listModel.clear();
-        for (String h : hosts) listModel.addElement(h);
-        if (currentSelection != null && hosts.contains(currentSelection)) {
+        applySidebarFilter();
+        if (currentSelection != null && listModel.contains(currentSelection)) {
             hostList.setSelectedValue(currentSelection, true);
         }
     }
