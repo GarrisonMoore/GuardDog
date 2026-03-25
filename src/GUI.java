@@ -29,6 +29,7 @@ public class GUI extends JFrame {
     private final JTextPane selectedLogDisplay = new JTextPane();
     private final JTextPane liveLogDisplay = new JTextPane();
     private final JTabbedPane logTabs = new JTabbedPane();
+    private final JButton backButton = new JButton("← Back");
 
     private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames", "Category", "Severity", "Time"});
 
@@ -59,6 +60,20 @@ public class GUI extends JFrame {
         searchField.setForeground(Color.WHITE);
 
         pivotBox.setFont(new Font("Monospaced", Font.BOLD, 16));
+
+        backButton.setFont(new Font("Monospaced", Font.BOLD, 14));
+        backButton.setFocusPainted(false);
+        backButton.setVisible(false);
+        backButton.addActionListener(e -> {
+            if ("Time".equals(pivotBox.getSelectedItem())) {
+                if (browseMode == BrowseMode.TIMES) {
+                    loadDays();
+                    selectedDay = null;
+                    backButton.setVisible(false);
+                    refreshDisplay();
+                }
+            }
+        });
 
         searchField.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { filterSidebar(searchField); }
@@ -128,6 +143,7 @@ public class GUI extends JFrame {
             } else if ("Time".equals(selected)) {
                 loadDays();
             }
+            backButton.setVisible(false);
             refreshDisplay();
         });
 
@@ -154,7 +170,12 @@ public class GUI extends JFrame {
         JPanel sidePanel = new JPanel(new BorderLayout());
         sidePanel.setPreferredSize(new Dimension(300, 0));
         sidePanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 5));
-        sidePanel.add(listScroll, BorderLayout.CENTER);
+
+        JPanel navHeader = new JPanel(new BorderLayout());
+        navHeader.add(backButton, BorderLayout.NORTH);
+        navHeader.add(listScroll, BorderLayout.CENTER);
+
+        sidePanel.add(navHeader, BorderLayout.CENTER);
 
         JPanel centerPanel = new JPanel(new BorderLayout());
         centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 5, 10, 10));
@@ -193,6 +214,7 @@ public class GUI extends JFrame {
         for (LocalTime time : IndexingEngine.getAvailableTimes(day)) {
             listModel.addElement(time.toString().substring(0, 5));
         }
+        backButton.setVisible(true);
     }
 
     public void setHosts(Set<String> hosts) {
