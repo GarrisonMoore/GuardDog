@@ -6,6 +6,7 @@ import javax.swing.text.Style;
 import javax.swing.text.StyleConstants;
 import javax.swing.text.StyledDocument;
 import java.awt.*;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -17,7 +18,7 @@ public class GUI extends JFrame {
     private final JList<String> hostList = new JList<>(listModel);
     private final JTextPane logDisplay = new JTextPane();
 
-    private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames","Category","Severity", "Time Window"});
+    private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames", "Category", "Severity", "Time Window"});
 
     private int lastRenderedCount = 0;
 
@@ -75,7 +76,7 @@ public class GUI extends JFrame {
                             listModel.addElement(host);
                         }
                     }
-                }else if ("Category".equals(currentPivot)) {
+                } else if ("Category".equals(currentPivot)) {
                     String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED"};
                     for (String cat : categories) {
                         if (cat.toLowerCase().contains(query)) {
@@ -118,7 +119,7 @@ public class GUI extends JFrame {
                 for (String host : IndexingEngine.getHostKeys()) {
                     listModel.addElement(host);
                 }
-            }else if ("Category".equals(selected)) {
+            } else if ("Category".equals(selected)) {
                 listModel.addElement("AUTH EVENTS");
                 listModel.addElement("AUDIT");
                 listModel.addElement("GROUP POLICY");
@@ -225,8 +226,14 @@ public class GUI extends JFrame {
                     String numericOnly = selected.replaceAll("\\D+", "");
                     if (!numericOnly.isEmpty()) mins = Integer.parseInt(numericOnly);
                 }
-                if (mins > 0) logs = IndexingEngine.getLogsByTime(mins);
-                break;
+                if (mins > 0) {
+                    java.time.LocalDate day = java.time.LocalDate.now();
+                    java.time.LocalTime end = java.time.LocalTime.now();
+                    java.time.LocalTime start = end.minusMinutes(mins);
+
+                    logs = IndexingEngine.getLogsByDayAndTime(day, start, end);
+                    break;
+                }
         }
 
         StyledDocument doc = logDisplay.getStyledDocument();

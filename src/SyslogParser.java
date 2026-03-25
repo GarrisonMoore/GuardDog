@@ -1,4 +1,5 @@
 import java.util.ArrayList;
+import java.util.TreeMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -27,6 +28,7 @@ public class SyslogParser implements LogParser {
                 // throw away windows noise first
                 if (lowerMsg.contains("the locale specific resource for the desired message is not present")) {
                     msg = "computer fart noises";
+                    lowerMsg = msg.toLowerCase();
                 }
 
                 // --- CATEGORIZATION ---
@@ -58,8 +60,22 @@ public class SyslogParser implements LogParser {
                 // create a new log object for any logs that fit the above categories
                 logObject = new LogObject(epochTime, host, severity, category, msg);
 
+                java.time.LocalDateTime dateTime = java.time.LocalDateTime.ofInstant(
+                        java.time.Instant.ofEpochSecond(epochTime),
+                        java.time.ZoneId.systemDefault()
+                );
+
+                java.time.LocalDate day = dateTime.toLocalDate();
+                java.time.LocalTime time = dateTime.toLocalTime().withSecond(0).withNano(0);
+
+                // AI shit- maybe work maybe not
+                IndexingEngine.TimeIndex
+                        .computeIfAbsent(day, k -> new TreeMap<>())
+                        .computeIfAbsent(time, k -> new ArrayList<>())
+                        .add(logObject);
+
                 // compute time index and host index
-                IndexingEngine.TimeIndex.computeIfAbsent(epochTime, k -> new ArrayList<>()).add(logObject);
+                //IndexingEngine.TimeIndex.computeIfAbsent(epochTime, k -> new ArrayList<>()).add(logObject);
                 IndexingEngine.HostIndex.computeIfAbsent(host, k -> new ArrayList<>()).add(logObject);
 
             } catch (Exception e) {
