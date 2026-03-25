@@ -14,13 +14,13 @@ public class GUI extends JFrame {
 
     private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames", "Severity", "Time Window"});
     public GUI() {
-        setTitle("Watch Dog NOC - Phase 2");
+        setTitle("Guard Dog NOC - In-memory Indexer and Datastore");
         setSize(1000, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
         // High-Contrast NOC Styles
-        Font nocFont = new Font("Monospaced", Font.BOLD, 18);
+        Font nocFont = new Font("Monospaced", Font.BOLD, 12);
         hostList.setFont(nocFont);
         hostList.setBackground(Color.BLACK);
         hostList.setForeground(Color.GREEN);
@@ -31,12 +31,12 @@ public class GUI extends JFrame {
         logDisplay.setEditable(false);
 
         JTextField searchField = new JTextField();
-        searchField.setFont(new Font("Monospaced", Font.BOLD, 18));
+        searchField.setFont(new Font("Monospaced", Font.BOLD, 16));
         searchField.setBackground(Color.DARK_GRAY);
         searchField.setForeground(Color.WHITE);
 
         // Create the dropdown before using it
-        pivotBox.setFont(new Font("Monospaced", Font.BOLD, 18));
+        pivotBox.setFont(new Font("Monospaced", Font.BOLD, 16));
 
         // Add a DocumentListener to the search field
         searchField.getDocument().addDocumentListener(new DocumentListener() {
