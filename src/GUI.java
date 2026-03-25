@@ -1,6 +1,10 @@
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
+import javax.swing.text.BadLocationException;
+import javax.swing.text.Style;
+import javax.swing.text.StyleConstants;
+import javax.swing.text.StyledDocument;
 import java.awt.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -11,7 +15,7 @@ import java.util.Objects;
 public class GUI extends JFrame {
     private final DefaultListModel<String> listModel = new DefaultListModel<>();
     private final JList<String> hostList = new JList<>(listModel);
-    private final JTextArea logDisplay = new JTextArea();
+    private final JTextPane logDisplay = new JTextPane();
 
     private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames","Category","Severity", "Time Window"});
 
@@ -21,7 +25,7 @@ public class GUI extends JFrame {
 
     public GUI() {
         setTitle("Guard Dog NOC - In-memory Indexer and Datastore");
-        setSize(1500, 600);
+        setSize(1200, 600);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
 
@@ -33,10 +37,10 @@ public class GUI extends JFrame {
 
         logDisplay.setFont(nocFont);
         logDisplay.setBackground(Color.BLACK);
-        logDisplay.setForeground(Color.WHITE);
         logDisplay.setEditable(false);
-        logDisplay.setLineWrap(false);
-        logDisplay.setWrapStyleWord(false);
+        logDisplay.setCaretColor(Color.WHITE);
+        logDisplay.setForeground(Color.WHITE);
+        logDisplay.setMargin(new Insets(8, 8, 8, 8));
 
         JTextField searchField = new JTextField();
         searchField.setFont(new Font("Monospaced", Font.BOLD, 16));
@@ -114,7 +118,6 @@ public class GUI extends JFrame {
                 for (String host : IndexingEngine.getHostKeys()) {
                     listModel.addElement(host);
                 }
-
             }else if ("Category".equals(selected)) {
                 listModel.addElement("AUTH EVENTS");
                 listModel.addElement("AUDIT");
@@ -226,11 +229,67 @@ public class GUI extends JFrame {
                 break;
         }
 
+        StyledDocument doc = logDisplay.getStyledDocument();
         logDisplay.setText("");
+
         for (LogObject log : logs) {
-            logDisplay.append(log.toString() + "\n");
+            appendColoredLog(doc, log);
         }
 
         lastRenderedCount = logs.size();
+    }
+
+    private void appendColoredLog(StyledDocument doc, LogObject log) {
+        try {
+            String timestamp = formatTimestamp(log);
+            String host = log.getSource();
+            String severity = log.getSeverity();
+            String category = log.getCategory();
+            String message = log.getMessage();
+
+            Style tsStyle = logDisplay.addStyle("timestamp", null);
+            StyleConstants.setForeground(tsStyle, Color.CYAN);
+
+            Style hostStyle = logDisplay.addStyle("host", null);
+            StyleConstants.setForeground(hostStyle, Color.GREEN);
+
+            Style sevStyle = logDisplay.addStyle("severity", null);
+            if ("CRIT".equalsIgnoreCase(severity)) {
+                StyleConstants.setForeground(sevStyle, Color.RED);
+            } else if ("WARN".equalsIgnoreCase(severity)) {
+                StyleConstants.setForeground(sevStyle, Color.YELLOW);
+            } else {
+                StyleConstants.setForeground(sevStyle, Color.BLUE);
+            }
+
+            Style catStyle = logDisplay.addStyle("category", null);
+            StyleConstants.setForeground(catStyle, Color.LIGHT_GRAY);
+
+            Style msgStyle = logDisplay.addStyle("message", null);
+            StyleConstants.setForeground(msgStyle, Color.WHITE);
+
+            doc.insertString(doc.getLength(), "[", msgStyle);
+            doc.insertString(doc.getLength(), timestamp, tsStyle);
+            doc.insertString(doc.getLength(), "] ", msgStyle);
+            doc.insertString(doc.getLength(), host, hostStyle);
+            doc.insertString(doc.getLength(), " | ", msgStyle);
+            doc.insertString(doc.getLength(), severity, sevStyle);
+            doc.insertString(doc.getLength(), " | ", msgStyle);
+            doc.insertString(doc.getLength(), category, catStyle);
+            doc.insertString(doc.getLength(), " : ", msgStyle);
+            doc.insertString(doc.getLength(), message + "\n", msgStyle);
+        } catch (BadLocationException ignored) {
+            // If insertion fails, skip the line instead of crashing the UI
+        }
+    }
+
+    private String formatTimestamp(LogObject log) {
+        java.time.LocalDateTime date = java.time.LocalDateTime.ofInstant(
+                java.time.Instant.ofEpochSecond(log.getTimestamp()),
+                java.time.ZoneId.systemDefault()
+        );
+        java.time.format.DateTimeFormatter formatter =
+                java.time.format.DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+        return date.format(formatter);
     }
 }

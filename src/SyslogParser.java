@@ -15,6 +15,7 @@ public class SyslogParser implements LogParser {
     @Override
     public LogObject parse(String rawline) {
         Matcher m = LOG_PATTERN.matcher(rawline);
+        LogObject logObject = null;
         if (m.find()) {
             try {
                 long epochTime = java.time.OffsetDateTime.parse(m.group(1)).toEpochSecond();
@@ -25,7 +26,7 @@ public class SyslogParser implements LogParser {
 
                 // throw away windows noise first
                 if (lowerMsg.contains("the locale specific resource for the desired message is not present")) {
-                    return new LogObject(epochTime, host, "INFO", "UNCATEGORIZED", "computer fart noises");
+                    msg = "computer fart noises";
                 }
 
                 // --- CATEGORIZATION ---
@@ -39,23 +40,23 @@ public class SyslogParser implements LogParser {
                 } else if (lowerMsg.contains("warn") || lowerMsg.contains("timeout") || lowerMsg.contains("warning") || lowerMsg.contains("blocked") || lowerMsg.contains("denied")) {
                     severity = "WARN";
                     category = "WARNINGS";
-                }else severity = "INFO";
+                } else severity = "INFO";
 
                 // Categories
                 if (lowerMsg.contains("failed") || lowerMsg.contains("failed to")) {
                     category = "ERRORS";
                 } else if (lowerMsg.contains("logon") || lowerMsg.contains("auth") || lowerMsg.contains("access") || lowerMsg.contains("request")) {
                     category = "AUTH EVENTS";
-                }else if (lowerMsg.contains("audit") || lowerMsg.contains("auditd")) {
+                } else if (lowerMsg.contains("audit") || lowerMsg.contains("auditd")) {
                     category = "AUDIT";
-                } else if (lowerMsg.contains("group") || lowerMsg.contains("policy") || lowerMsg.contains(".local") || lowerMsg.contains("10.202.69.") || lowerMsg.contains("{")){
+                } else if (lowerMsg.contains("group") || lowerMsg.contains("policy") || lowerMsg.contains(".local") || lowerMsg.contains("10.202.69.") || lowerMsg.contains("{")) {
                     category = "GROUP POLICY";
-                }else if (lowerMsg.contains("kbps") || lowerMsg.contains("wallpaper") || lowerMsg.contains("wallpapers") || lowerMsg.contains("none")) {
+                } else if (lowerMsg.contains("kbps") || lowerMsg.contains("wallpaper") || lowerMsg.contains("wallpapers") || lowerMsg.contains("none")) {
                     category = "GROUP POLICY";
-                }else category = "UNCATEGORIZED";
+                } else category = "UNCATEGORIZED";
 
                 // create a new log object for any logs that fit the above categories
-                LogObject logObject = new LogObject(epochTime, host, severity, category, msg);
+                logObject = new LogObject(epochTime, host, severity, category, msg);
 
                 // compute time index and host index
                 IndexingEngine.TimeIndex.computeIfAbsent(epochTime, k -> new ArrayList<>()).add(logObject);
@@ -66,6 +67,6 @@ public class SyslogParser implements LogParser {
                 System.err.println("Error parsing log: " + e.getMessage());
             }
         }
-        return null;
+        return logObject;
     }
 }
