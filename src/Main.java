@@ -12,12 +12,27 @@ public class Main extends IndexingEngine {
 
     public static void main(String[] args) throws InterruptedException {
         FlatDarkLaf.setup();
-        UIManager.put("Component.arc", 15);
-        UIManager.put("TextComponent.arc", 15);
-        UIManager.put("Button.arc", 15);
+        // Global UI tweaks for a modern, cleaner look
+        UIManager.put("Component.arc", 12);
+        UIManager.put("TextComponent.arc", 12);
+        UIManager.put("Button.arc", 12);
         UIManager.put("ScrollBar.thumbArc", 999);
         UIManager.put("ScrollBar.trackArc", 999);
-        UIManager.put("TabbedPane.selectedBackground", Color.DARK_GRAY);
+        UIManager.put("TabbedPane.selectedBackground", new Color(40, 40, 40));
+        UIManager.put("TabbedPane.tabHeight", 45);
+        UIManager.put("TabbedPane.underlineColor", new Color(0, 150, 255)); // Electric Blue
+        UIManager.put("TabbedPane.selectedForeground", Color.WHITE);
+        UIManager.put("TabbedPane.hoverBackground", new Color(45, 45, 45));
+        UIManager.put("List.selectionBackground", new Color(30, 80, 150));
+        UIManager.put("List.selectionForeground", Color.WHITE);
+        UIManager.put("ComboBox.selectionBackground", new Color(30, 80, 150));
+        UIManager.put("ScrollBar.width", 10);
+        UIManager.put("Separator.foreground", new Color(50, 50, 50));
+        UIManager.put("Panel.background", new Color(25, 25, 25));
+        UIManager.put("List.background", new Color(20, 20, 20));
+        UIManager.put("TextPane.background", new Color(15, 15, 15));
+        UIManager.put("ComboBox.background", new Color(35, 35, 35));
+        UIManager.put("TextField.background", new Color(35, 35, 35));
 
         SwingUtilities.invokeLater(() -> {
             new GUI();

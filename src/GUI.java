@@ -31,6 +31,12 @@ public class GUI extends JFrame {
     private final JTabbedPane logTabs = new JTabbedPane();
     private final JButton backButton = new JButton("↩");
 
+    private final Color ACCENT_COLOR = new Color(0, 150, 255); // Electric Blue
+    private final Color PANEL_BG = new Color(25, 25, 25);
+    private final Color LOG_BG = new Color(15, 15, 15);
+    private final Color LIST_BG = new Color(20, 20, 20);
+    private final Color BORDER_COLOR = new Color(40, 40, 40);
+
     private final JComboBox<String> pivotBox = new JComboBox<>(new String[]{"Hostnames", "Category", "Severity", "Time"});
 
     private int lastRenderedCount = 0;
@@ -41,32 +47,52 @@ public class GUI extends JFrame {
     private java.time.LocalDate selectedDay = null;
 
     public GUI() {
-        setTitle("Guard Dog NOC - In-memory Indexer and Datastore");
-        setSize(1200, 800);
+        setTitle("Guard Dog Processor - Log Management Console");
+        setSize(1300, 850);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        getRootPane().putClientProperty("apple.awt.fullWindowContent", true);
-        getRootPane().putClientProperty("apple.awt.transparentTitleBar", true);
-        getRootPane().putClientProperty("JRootPane.titleBarBackground", new Color(30, 30, 30));
+        setBackground(PANEL_BG);
         setLayout(new BorderLayout());
 
-        Font nocFont = new Font("Monospaced", Font.BOLD, 12);
-        hostList.setFont(nocFont);
-        hostList.setBackground(Color.BLACK);
-        hostList.setForeground(Color.GREEN);
+        Font mainFont = new Font("Segoe UI", Font.PLAIN, 14);
+        Font monoFont = new Font("JetBrains Mono", Font.PLAIN, 13);
+        if (new Font("JetBrains Mono", Font.PLAIN, 13).getFamily().equals("Dialog")) {
+            monoFont = new Font("Monospaced", Font.PLAIN, 13);
+        }
 
-        configureLogPane(selectedLogDisplay, nocFont);
-        configureLogPane(liveLogDisplay, nocFont);
+        hostList.setFont(mainFont);
+        hostList.setBackground(LIST_BG);
+        hostList.setFixedCellHeight(40);
+        hostList.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));
+
+        hostList.setCellRenderer(new DefaultListCellRenderer() {
+            @Override
+            public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
+                JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+                label.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
+                if (isSelected) {
+                    label.setBackground(new Color(30, 80, 150));
+                    label.setForeground(Color.WHITE);
+                } else {
+                    label.setBackground(LIST_BG);
+                    label.setForeground(new Color(200, 200, 200));
+                }
+                return label;
+            }
+        });
+
+        configureLogPane(selectedLogDisplay, monoFont);
+        configureLogPane(liveLogDisplay, monoFont);
 
         JTextField searchField = new JTextField();
-        searchField.setFont(new Font("Monospaced", Font.BOLD, 16));
-        searchField.setBackground(Color.DARK_GRAY);
-        searchField.setForeground(Color.WHITE);
+        searchField.setFont(mainFont);
+        searchField.putClientProperty("JTextField.placeholderText", "Search logs...");
+        searchField.putClientProperty("JComponent.outline", ACCENT_COLOR);
 
-        pivotBox.setFont(new Font("Monospaced", Font.BOLD, 16));
+        pivotBox.setFont(mainFont);
+        pivotBox.putClientProperty("JComponent.outline", ACCENT_COLOR);
 
-        backButton.setFont(new Font("Monospaced", Font.BOLD, 18));
-        backButton.setMargin(new Insets(0, 0, 0, 0));
-        backButton.setPreferredSize(new Dimension(30, 30));
+        backButton.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
+        backButton.setPreferredSize(new Dimension(35, 35));
         backButton.setFocusPainted(false);
         backButton.setEnabled(false);
         backButton.addActionListener(e -> {
@@ -107,7 +133,7 @@ public class GUI extends JFrame {
                         if (host.toLowerCase().contains(query)) listModel.addElement(host);
                     }
                 } else if ("Category".equals(currentPivot)) {
-                    String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED"};
+                    String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED", "ERRORS", "WARNINGS"};
                     for (String cat : categories) {
                         if (cat.toLowerCase().contains(query)) listModel.addElement(cat);
                     }
@@ -122,8 +148,6 @@ public class GUI extends JFrame {
 
         hostList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                lastRenderedCount = 0;
-                lastSelectedKey = null;
                 refreshDisplay();
             }
         });
@@ -137,10 +161,8 @@ public class GUI extends JFrame {
             if ("Hostnames".equals(selected)) {
                 for (String host : IndexingEngine.getHostKeys()) listModel.addElement(host);
             } else if ("Category".equals(selected)) {
-                listModel.addElement("AUTH EVENTS");
-                listModel.addElement("AUDIT");
-                listModel.addElement("GROUP POLICY");
-                listModel.addElement("UNCATEGORIZED");
+                String[] categories = {"AUTH EVENTS", "AUDIT", "GROUP POLICY", "UNCATEGORIZED", "ERRORS", "WARNINGS"};
+                for (String cat : categories) listModel.addElement(cat);
             } else if ("Severity".equals(selected)) {
                 listModel.addElement("INFO");
                 listModel.addElement("WARN");
@@ -152,53 +174,66 @@ public class GUI extends JFrame {
             refreshDisplay();
         });
 
+        // Layout construction
         JPanel topBar = new JPanel(new BorderLayout(15, 0));
-        topBar.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
-        
-        pivotBox.setPreferredSize(new Dimension(200, 40));
-        searchField.setPreferredSize(new Dimension(400, 40));
-        
-        topBar.add(pivotBox, BorderLayout.WEST);
+        topBar.setBorder(BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        JPanel leftControls = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        leftControls.setOpaque(false);
+        pivotBox.setPreferredSize(new Dimension(180, 40));
+        leftControls.add(pivotBox);
+
+        topBar.add(leftControls, BorderLayout.WEST);
         topBar.add(searchField, BorderLayout.CENTER);
 
-        javax.swing.border.Border lineBorder = BorderFactory.createLineBorder(new Color(60, 60, 60), 1);
-        Font borderFont = new Font("Monospaced", Font.BOLD, 14);
+        // Sidebar
+        JPanel sidePanel = new JPanel(new BorderLayout(0, 10));
+        sidePanel.setBorder(BorderFactory.createEmptyBorder(0, 20, 20, 10));
+        sidePanel.setPreferredSize(new Dimension(300, 0));
+
+        JPanel navHeader = new JPanel(new BorderLayout(10, 0));
+        navHeader.setOpaque(false);
+        JLabel navLabel = new JLabel("Navigation");
+        navLabel.setFont(new Font("Segoe UI", Font.BOLD, 14));
+        navLabel.setForeground(new Color(150, 150, 150));
+        navHeader.add(navLabel, BorderLayout.WEST);
+        navHeader.add(backButton, BorderLayout.EAST);
 
         JScrollPane listScroll = new JScrollPane(hostList);
-        listScroll.setBorder(BorderFactory.createTitledBorder(lineBorder, " Navigation ", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, borderFont, Color.GRAY));
-        listScroll.setViewportBorder(null);
+        listScroll.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        listScroll.putClientProperty("JComponent.arc", 12);
+        listScroll.getVerticalScrollBar().setUnitIncrement(16);
+
+        sidePanel.add(navHeader, BorderLayout.NORTH);
+        sidePanel.add(listScroll, BorderLayout.CENTER);
+
+        // Center Panel
+        JPanel centerPanel = new JPanel(new BorderLayout());
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 20, 20));
+
+        logTabs.setBorder(null);
+        logTabs.setOpaque(false);
 
         JScrollPane selectedScroll = new JScrollPane(selectedLogDisplay);
-        selectedScroll.setBorder(BorderFactory.createTitledBorder(lineBorder, " Selected Logs ", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, borderFont, Color.GRAY));
-        selectedScroll.setViewportBorder(null);
+        selectedScroll.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        selectedScroll.putClientProperty("JComponent.arc", 12);
+        selectedScroll.getVerticalScrollBar().setUnitIncrement(16);
 
         JScrollPane liveScroll = new JScrollPane(liveLogDisplay);
-        liveScroll.setBorder(BorderFactory.createTitledBorder(lineBorder, " Live Logs ", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, borderFont, Color.GRAY));
-        liveScroll.setViewportBorder(null);
+        liveScroll.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
+        liveScroll.putClientProperty("JComponent.arc", 12);
+        liveScroll.getVerticalScrollBar().setUnitIncrement(16);
 
-        logTabs.addTab("Selected View", selectedScroll);
-        logTabs.addTab("Live View", liveScroll);
+        logTabs.addTab("SELECTED LOGS", selectedScroll);
+        logTabs.addTab("LIVE FEED", liveScroll);
 
-        JPanel sidePanel = new JPanel(new BorderLayout());
-        sidePanel.setPreferredSize(new Dimension(320, 0));
-        sidePanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 15, 10));
-
-        JPanel navHeader = new JPanel(new BorderLayout(0, 10));
-        JPanel btnWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
-        btnWrap.add(backButton);
-        navHeader.add(btnWrap, BorderLayout.NORTH);
-        navHeader.add(listScroll, BorderLayout.CENTER);
-
-        sidePanel.add(navHeader, BorderLayout.CENTER);
-
-        JPanel centerPanel = new JPanel(new BorderLayout());
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 5, 15, 15));
         centerPanel.add(logTabs, BorderLayout.CENTER);
 
         add(topBar, BorderLayout.NORTH);
         add(sidePanel, BorderLayout.WEST);
         add(centerPanel, BorderLayout.CENTER);
 
+        setLocationRelativeTo(null);
         setVisible(true);
         myGui = this;
         loadDays();
@@ -206,9 +241,9 @@ public class GUI extends JFrame {
 
     private void configureLogPane(JTextPane pane, Font font) {
         pane.setFont(font);
-        pane.setBackground(Color.BLACK);
+        pane.setBackground(LOG_BG);
         pane.setEditable(false);
-        pane.setCaretColor(Color.WHITE);
+        pane.setCaretColor(ACCENT_COLOR);
         pane.setForeground(Color.WHITE);
         pane.setMargin(new Insets(8, 8, 8, 8));
     }
@@ -312,35 +347,32 @@ public class GUI extends JFrame {
             String message = log.getMessage();
 
             Style tsStyle = selectedLogDisplay.addStyle("timestamp", null);
-            StyleConstants.setForeground(tsStyle, Color.GREEN);
+            StyleConstants.setForeground(tsStyle, new Color(110, 110, 110)); // Subdued
 
             Style hostStyle = selectedLogDisplay.addStyle("host", null);
-            StyleConstants.setForeground(hostStyle, Color.GREEN);
+            StyleConstants.setForeground(hostStyle, ACCENT_COLOR);
+            StyleConstants.setBold(hostStyle, true);
 
             Style sevStyle = selectedLogDisplay.addStyle("severity", null);
             if ("CRIT".equalsIgnoreCase(severity)) {
-                StyleConstants.setForeground(sevStyle, Color.RED);
+                StyleConstants.setForeground(sevStyle, new Color(255, 80, 80));
+                StyleConstants.setBold(sevStyle, true);
             } else if ("WARN".equalsIgnoreCase(severity)) {
-                StyleConstants.setForeground(sevStyle, Color.YELLOW);
+                StyleConstants.setForeground(sevStyle, new Color(255, 200, 50));
             } else {
-                StyleConstants.setForeground(sevStyle, Color.CYAN);
+                StyleConstants.setForeground(sevStyle, new Color(100, 200, 255));
             }
 
             Style catStyle = selectedLogDisplay.addStyle("category", null);
-            StyleConstants.setForeground(catStyle, Color.ORANGE);
+            StyleConstants.setForeground(catStyle, new Color(180, 180, 180));
 
             Style msgStyle = selectedLogDisplay.addStyle("message", null);
-            StyleConstants.setForeground(msgStyle, Color.WHITE);
+            StyleConstants.setForeground(msgStyle, new Color(220, 220, 220));
 
-            doc.insertString(doc.getLength(), "[", msgStyle);
-            doc.insertString(doc.getLength(), timestamp, tsStyle);
-            doc.insertString(doc.getLength(), "] ", msgStyle);
-            doc.insertString(doc.getLength(), host, hostStyle);
-            doc.insertString(doc.getLength(), " | ", msgStyle);
-            doc.insertString(doc.getLength(), severity, sevStyle);
-            doc.insertString(doc.getLength(), " | ", msgStyle);
-            doc.insertString(doc.getLength(), category, catStyle);
-            doc.insertString(doc.getLength(), " : ", msgStyle);
+            doc.insertString(doc.getLength(), timestamp + " ", tsStyle);
+            doc.insertString(doc.getLength(), host + " ", hostStyle);
+            doc.insertString(doc.getLength(), severity + " ", sevStyle);
+            doc.insertString(doc.getLength(), "[" + category + "] ", catStyle);
             doc.insertString(doc.getLength(), message + "\n", msgStyle);
         } catch (BadLocationException ignored) {
         }
