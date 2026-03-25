@@ -42,8 +42,11 @@ public class GUI extends JFrame {
 
     public GUI() {
         setTitle("Guard Dog NOC - In-memory Indexer and Datastore");
-        setSize(1200, 700);
+        setSize(1200, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        getRootPane().putClientProperty("apple.awt.fullWindowContent", true);
+        getRootPane().putClientProperty("apple.awt.transparentTitleBar", true);
+        getRootPane().putClientProperty("JRootPane.titleBarBackground", new Color(30, 30, 30));
         setLayout(new BorderLayout());
 
         Font nocFont = new Font("Monospaced", Font.BOLD, 12);
@@ -149,31 +152,38 @@ public class GUI extends JFrame {
             refreshDisplay();
         });
 
-        JPanel topBar = new JPanel(new GridLayout(2, 1, 0, 8));
-        topBar.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
-        topBar.add(pivotBox);
-        topBar.add(searchField);
+        JPanel topBar = new JPanel(new BorderLayout(15, 0));
+        topBar.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
+        
+        pivotBox.setPreferredSize(new Dimension(200, 40));
+        searchField.setPreferredSize(new Dimension(400, 40));
+        
+        topBar.add(pivotBox, BorderLayout.WEST);
+        topBar.add(searchField, BorderLayout.CENTER);
 
-        javax.swing.border.Border lineBorder = BorderFactory.createLineBorder(Color.DARK_GRAY, 2);
+        javax.swing.border.Border lineBorder = BorderFactory.createLineBorder(new Color(60, 60, 60), 1);
         Font borderFont = new Font("Monospaced", Font.BOLD, 14);
 
         JScrollPane listScroll = new JScrollPane(hostList);
-        listScroll.setBorder(BorderFactory.createTitledBorder(lineBorder, " Navigation ", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, borderFont, Color.LIGHT_GRAY));
+        listScroll.setBorder(BorderFactory.createTitledBorder(lineBorder, " Navigation ", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, borderFont, Color.GRAY));
+        listScroll.setViewportBorder(null);
 
         JScrollPane selectedScroll = new JScrollPane(selectedLogDisplay);
-        selectedScroll.setBorder(BorderFactory.createTitledBorder(lineBorder, " Selected Logs ", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, borderFont, Color.LIGHT_GRAY));
+        selectedScroll.setBorder(BorderFactory.createTitledBorder(lineBorder, " Selected Logs ", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, borderFont, Color.GRAY));
+        selectedScroll.setViewportBorder(null);
 
         JScrollPane liveScroll = new JScrollPane(liveLogDisplay);
-        liveScroll.setBorder(BorderFactory.createTitledBorder(lineBorder, " Live Logs ", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, borderFont, Color.LIGHT_GRAY));
+        liveScroll.setBorder(BorderFactory.createTitledBorder(lineBorder, " Live Logs ", javax.swing.border.TitledBorder.LEFT, javax.swing.border.TitledBorder.TOP, borderFont, Color.GRAY));
+        liveScroll.setViewportBorder(null);
 
         logTabs.addTab("Selected View", selectedScroll);
         logTabs.addTab("Live View", liveScroll);
 
         JPanel sidePanel = new JPanel(new BorderLayout());
-        sidePanel.setPreferredSize(new Dimension(300, 0));
-        sidePanel.setBorder(BorderFactory.createEmptyBorder(0, 10, 10, 5));
+        sidePanel.setPreferredSize(new Dimension(320, 0));
+        sidePanel.setBorder(BorderFactory.createEmptyBorder(0, 15, 15, 10));
 
-        JPanel navHeader = new JPanel(new BorderLayout());
+        JPanel navHeader = new JPanel(new BorderLayout(0, 10));
         JPanel btnWrap = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
         btnWrap.add(backButton);
         navHeader.add(btnWrap, BorderLayout.NORTH);
@@ -182,7 +192,7 @@ public class GUI extends JFrame {
         sidePanel.add(navHeader, BorderLayout.CENTER);
 
         JPanel centerPanel = new JPanel(new BorderLayout());
-        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 5, 10, 10));
+        centerPanel.setBorder(BorderFactory.createEmptyBorder(0, 5, 15, 15));
         centerPanel.add(logTabs, BorderLayout.CENTER);
 
         add(topBar, BorderLayout.NORTH);

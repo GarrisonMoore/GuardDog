@@ -1,6 +1,7 @@
 import com.formdev.flatlaf.FlatDarkLaf;
 
 import javax.swing.*;
+import java.awt.Color;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.Objects;
@@ -11,6 +12,12 @@ public class Main extends IndexingEngine {
 
     public static void main(String[] args) throws InterruptedException {
         FlatDarkLaf.setup();
+        UIManager.put("Component.arc", 15);
+        UIManager.put("TextComponent.arc", 15);
+        UIManager.put("Button.arc", 15);
+        UIManager.put("ScrollBar.thumbArc", 999);
+        UIManager.put("ScrollBar.trackArc", 999);
+        UIManager.put("TabbedPane.selectedBackground", Color.DARK_GRAY);
 
         SwingUtilities.invokeLater(() -> {
             new GUI();
