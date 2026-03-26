@@ -28,12 +28,17 @@ This application was designed in conjunction with the "Guard Dog NOC Bridge" pro
 3. Run `Main`. The GUI will open, and the log indexer will wait for the target file to exist before beginning to read and parse from the end of the file.
 
 ## Future Plans
-* ** Implement SQLite database implementation to make the processed data persistent **
-* ** Implement more log parsers for other log formats to enhance compatibility with IOT devices**
-* ** Implement a 'watchdog' AI to automatically monitor logs and alert on anomalies **
-* ** Implement YOLO AI to detect and classify IOT camera feeds **
-* ** Implement a video decoder to display IOT camera feeds **
-* ** Implement a video encoder to record IOT camera feeds **
-* ** Implement ONVIF support to control IOT cameras **
-* ** Implement a web interface to view the processed data and live streams **
 
+** DATA HANDLING **
+* ** Implement SQLite database implementation to make the processed data persistent ** [CONCEPT-STAGE]
+* ** Implement CSV parsing and archiving to make processed data persistent ** [IN-PROGRESS]
+* ** Implement more log parsers for other log formats to enhance compatibility with IOT devices ** [IN-PROGRESS]
+
+** AI/ML IMPLEMENTATIONS **
+* ** Implement a 'watchdog' AI to automatically monitor logs and alert on anomalies ** [LONG-TERM]
+* ** Implement YOLO AI to detect and classify IOT camera feeds ** [IN-PROGRESS]
+
+** IOT IMPLEMENTATIONS **
+* ** Implement a video decoder to display IOT camera feeds ** [LONG-TERM]
+* ** Implement a video encoder to record IOT camera feeds ** [LONG-TERM]
+* ** Implement ONVIF support to control IOT cameras ** [LONG-TERM]

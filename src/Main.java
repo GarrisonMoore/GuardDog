@@ -15,6 +15,9 @@ public class Main extends IndexingEngine {
         // Using FlatDarkLaf for a modern look
         FlatDarkLaf.setup();
 
+        ReadmeGUI readmeGUI = new ReadmeGUI();
+        readmeGUI.getGUI();
+
         // Global UI tweaks for a modern, cleaner look
         UIManager.put("Component.arc", 12);
         UIManager.put("TextComponent.arc", 12);
