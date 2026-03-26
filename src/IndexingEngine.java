@@ -30,10 +30,14 @@ public class IndexingEngine{
                 Thread.sleep(500);
             }
 
-            // start reading from the beginning of the file (as per previous issue fix)
+            // start reading from the end of the file by default to prevent memory exhaustion on large logs
             try (RandomAccessFile raf = new RandomAccessFile(file.toFile(), "r")) {
-                raf.seek(0);
-                // read the file line by line
+                long fileLength = raf.length();
+                // Seek to the end of the file. 
+                // To support a small amount of history (e.g., last 10KB), we could seek to fileLength - 10240
+                raf.seek(fileLength);
+                
+                // read the file line by line as new content is appended
                 while (true) {
                     String line = raf.readLine();
                     // make sure we don't use a null line
