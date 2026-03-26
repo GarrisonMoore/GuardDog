@@ -1,13 +1,9 @@
-import java.util.HashMap;
-
 public class LogObject {
     private final long timestamp;
     private final String source;
     private final String severity;
     private final String category;
     private final String message;
-
-    private HashMap<String, Integer> SortedLogs = new HashMap<>();
 
     public LogObject(long timestamp, String source, String severity,String category, String message) {
         this.timestamp = timestamp;
