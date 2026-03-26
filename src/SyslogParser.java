@@ -6,7 +6,7 @@ import java.util.regex.Pattern;
 public class SyslogParser implements LogParser {
 
     // RFC-5424 format Regex Tokenizer
-    private static final Pattern RFC5424_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[^\\s]*)\\s+(\\S+)\\s+.*:\\s+(.*)$");
+    private static final Pattern RFC5424_PATTERN = Pattern.compile("^(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[^\\s]*)\\s+(\\S+)\\s+(?:.*:\\s+)?(.*)$");
 
     // BSD syslog format Regex Tokenizer
     private static final Pattern BSD_PATTERN = Pattern.compile("^([A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(\\S+)\\s+(.*)$");
