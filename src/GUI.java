@@ -30,6 +30,8 @@ public class GUI extends JFrame {
     private final JTextPane selectedLogDisplay = new JTextPane();
     // Represents a text pane component within the GUI for displaying live log updates.
     private final JTextPane liveLogDisplay = new JTextPane();
+    // A JScrollPane component for the live log display.
+    private final JScrollPane liveScroll = new JScrollPane(liveLogDisplay);
     // A tabbed pane used to display logs in different categories or views.
     private final JTabbedPane logTabs = new JTabbedPane();
     // Represents a button used for navigating back within the GUI.
@@ -253,7 +255,6 @@ public class GUI extends JFrame {
         selectedScroll.putClientProperty("JComponent.arc", 12);
         selectedScroll.getVerticalScrollBar().setUnitIncrement(16);
 
-        JScrollPane liveScroll = new JScrollPane(liveLogDisplay);
         liveScroll.setBorder(BorderFactory.createLineBorder(BORDER_COLOR, 1));
         liveScroll.putClientProperty("JComponent.arc", 12);
         liveScroll.getVerticalScrollBar().setUnitIncrement(16);
@@ -376,9 +377,15 @@ public class GUI extends JFrame {
         SwingUtilities.invokeLater(() -> {
             String query = logSearchField.getText().trim().toLowerCase();
             if (query.isEmpty() || log.getMessage().toLowerCase().contains(query)) {
+                JScrollBar scrollBar = liveScroll.getVerticalScrollBar();
+                boolean isAtBottom = (scrollBar.getValue() + scrollBar.getVisibleAmount() >= scrollBar.getMaximum() - 50);
+
                 StyledDocument doc = liveLogDisplay.getStyledDocument();
                 appendColoredLog(doc, log);
-                liveLogDisplay.setCaretPosition(doc.getLength());
+
+                if (isAtBottom) {
+                    liveLogDisplay.setCaretPosition(doc.getLength());
+                }
             }
         });
     }

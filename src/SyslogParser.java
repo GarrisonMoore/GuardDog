@@ -84,17 +84,21 @@ public class SyslogParser implements LogParser {
 
         // Categories
         if (category.equals("UNCATEGORIZED")) {
-            if (lowerMsg.contains("warn") || lowerMsg.contains("timeout") || lowerMsg.contains("warning") || lowerMsg.contains("blocked") || lowerMsg.contains("denied")) {
+            if (lowerMsg.contains("warn") || lowerMsg.contains("timeout") || lowerMsg.contains("warning")
+                    || lowerMsg.contains("blocked") || lowerMsg.contains("denied")) {
                 category = "WARNINGS";
-            } else if (lowerMsg.contains("logon") || lowerMsg.contains("auth") || lowerMsg.contains("access") || lowerMsg.contains("request") || lowerMsg.contains("login")) {
+            } else if (lowerMsg.contains("logon") || lowerMsg.contains("auth") || lowerMsg.contains("access")
+                    || lowerMsg.contains("request") || lowerMsg.contains("login")) {
                 category = "AUTH EVENTS";
             } else if (lowerMsg.contains("audit") || lowerMsg.contains("auditd")) {
                 category = "AUDIT";
-            } else if (lowerMsg.contains("group") || lowerMsg.contains("policy") || lowerMsg.contains(".local") || lowerMsg.contains("10.202.69.") || lowerMsg.contains("{")) {
+            } else if (lowerMsg.contains("group") || lowerMsg.contains("policy") || lowerMsg.contains(".local") ||
+                    lowerMsg.contains("10.202.69.") || lowerMsg.contains("{") || lowerMsg.contains("kbps") ||
+                    lowerMsg.contains("wallpaper") || lowerMsg.contains("wallpapers") || lowerMsg.contains("none")) {
                 category = "GROUP POLICY";
-            } else if (lowerMsg.contains("kbps") || lowerMsg.contains("wallpaper") || lowerMsg.contains("wallpapers") || lowerMsg.contains("none")) {
-                category = "GROUP POLICY";
-            }else if (lowerMsg.contains("winrm")) {
+            }else if (lowerMsg.contains("winrm") || lowerMsg.contains("powershell") || lowerMsg.contains("command") ||
+                    lowerMsg.contains("task") || lowerMsg.contains("service") || lowerMsg.contains("server") ||
+            lowerMsg.contains("remote") || lowerMsg.contains("management") || lowerMsg.contains("remote management")) {
                 category = "REMOTE MANAGEMENT";
             }
         }
