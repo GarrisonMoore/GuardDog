@@ -76,29 +76,37 @@ public class SyslogParser implements ParserMaster {
         String severity = "INFO";
         String category = "UNCATEGORIZED";
 
-        // Severities - Check more critical first
-        if (lowerMsg.contains("fail") || lowerMsg.contains("error") || lowerMsg.contains("exception") || lowerMsg.contains("failed") || lowerMsg.contains("err")) {
+        // Categories - Check more critical first
+        if (lowerMsg.contains("crit") || lowerMsg.contains("error") || lowerMsg.contains("exception") ||
+                lowerMsg.contains("err") || lowerMsg.contains("fail") || lowerMsg.contains("failed") || lowerMsg.contains("failure")) {
             severity = "CRIT";
             category = "ERRORS";
-        } else if (lowerMsg.contains("warn") || lowerMsg.contains("timeout") || lowerMsg.contains("warning") || lowerMsg.contains("blocked") || lowerMsg.contains("denied")) {
-            severity = "WARN";
-            category = "WARNINGS";
-        }
-
-        // Categories
-        if (category.equals("UNCATEGORIZED")) {
-            if (lowerMsg.contains("warn") || lowerMsg.contains("timeout") || lowerMsg.contains("warning") || lowerMsg.contains("blocked") || lowerMsg.contains("denied")) {
+        } else if (category.equals("UNCATEGORIZED")) {
+            // ---- WARNINGS ----
+            if (lowerMsg.contains("warn") || lowerMsg.contains("timeout") || lowerMsg.contains("warning") ||
+                    lowerMsg.contains("blocked") || lowerMsg.contains("denied")) {
+                severity = "WARN";
                 category = "WARNINGS";
-            } else if (lowerMsg.contains("logon") || lowerMsg.contains("auth") || lowerMsg.contains("access") || lowerMsg.contains("request") || lowerMsg.contains("login")) {
+            // ---- AUTH EVENTS ----
+            } else if (lowerMsg.contains("logon") || lowerMsg.contains("auth") || lowerMsg.contains("access") ||
+                    lowerMsg.contains("request") || lowerMsg.contains("login")) {
+                severity = "INFO";
                 category = "AUTH EVENTS";
+            // ---- AUDIT ----
             } else if (lowerMsg.contains("audit") || lowerMsg.contains("auditd")) {
+                severity = "WARN";
                 category = "AUDIT";
-            } else if (lowerMsg.contains("group") || lowerMsg.contains("policy") || lowerMsg.contains(".local") || lowerMsg.contains("10.202.69.") || lowerMsg.contains("{")) {
+            // ---- GROUP POLICY ----
+            } else if (lowerMsg.contains("kbps") || lowerMsg.contains("wallpaper") || lowerMsg.contains("wallpapers") ||
+                    lowerMsg.contains("group") || lowerMsg.contains("policy") || lowerMsg.contains(".local") ||
+                    lowerMsg.contains("10.202.69.") || lowerMsg.contains("{")) {
+                severity = "INFO";
                 category = "GROUP POLICY";
-            } else if (lowerMsg.contains("kbps") || lowerMsg.contains("wallpaper") || lowerMsg.contains("wallpapers") || lowerMsg.contains("none")) {
-                category = "GROUP POLICY";
-            }else if (lowerMsg.contains("winrm") || lowerMsg.contains("service") || lowerMsg.contains("remote") || lowerMsg.contains("management")) {
+            // ---- REMOTE MANAGEMENT ----
+            }else if (lowerMsg.contains("winrm") || lowerMsg.contains("service") || lowerMsg.contains("remote") ||
+                    lowerMsg.contains("management") || lowerMsg.contains("powershell") || lowerMsg.contains("ps")) {
                 category = "REMOTE MANAGEMENT";
+                severity = "WARN";
             }
         }
 
