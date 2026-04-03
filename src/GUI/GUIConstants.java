@@ -10,9 +10,10 @@ public class GUIConstants {
     public static final Color BORDER_COLOR = new Color(40, 40, 40);
     
     // Severity colors
-    public static final Color INFO_COLOR = new Color(150, 150, 150); // Muted Gray
-    public static final Color WARN_COLOR = new Color(255, 180, 0);   // Amber
-    public static final Color CRIT_COLOR = new Color(255, 60, 60);    // Red
+    public static final Color INFO_COLOR = new Color(120, 120, 120); // More muted Gray
+    public static final Color WARN_COLOR = new Color(200, 150, 0);   // More muted Amber
+    public static final Color CRIT_COLOR = new Color(180, 50, 50);    // Smoky Red
+    public static final Color SUCCESS_COLOR = new Color(50, 150, 50);  // Smoky Green
 
     public static final Font MAIN_FONT = new Font("Segoe UI", Font.PLAIN, 14);
     public static final Font NAV_LABEL_FONT = new Font("Segoe UI", Font.BOLD, 14);

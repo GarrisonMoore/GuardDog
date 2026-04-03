@@ -6,6 +6,7 @@ import javax.swing.*;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 import java.awt.*;
+import java.awt.event.ActionListener;
 import java.time.LocalDate;
 import java.time.LocalTime;
 
@@ -42,7 +43,7 @@ public class SidebarPanel extends JPanel {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index, boolean isSelected, boolean cellHasFocus) {
                 JLabel label = (JLabel) super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                label.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
+                label.setBorder(BorderFactory.createEmptyBorder(15, 15, 15, 15));
                 if (isSelected) {
                     label.setBackground(new Color(30, 80, 150));
                     label.setForeground(Color.WHITE);
@@ -54,8 +55,19 @@ public class SidebarPanel extends JPanel {
             }
         });
 
+        searchField.setPreferredSize(new Dimension(270, 30));
+        searchField.setFont(GUIConstants.MAIN_FONT);
+        searchField.putClientProperty("JTextField.placeholderText", "Search logs...");
+        searchField.putClientProperty("JComponent.outline", GUIConstants.ACCENT_COLOR);
+
+        pivotBox.setPreferredSize(new Dimension(270, 35));
+        pivotBox.setFont(GUIConstants.MAIN_FONT);
+        pivotBox.putClientProperty("JComponent.outline", GUIConstants.ACCENT_COLOR);
+
         backButton.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 14));
-        backButton.setPreferredSize(new Dimension(30, 30));
+        backButton.setBackground(GUIConstants.LIST_BG);
+        backButton.putClientProperty("JComponent.outline", GUIConstants.ACCENT_COLOR);
+        backButton.setPreferredSize(new Dimension(25, 25));
         backButton.setFocusPainted(false);
         backButton.setEnabled(false);
     }
@@ -64,7 +76,7 @@ public class SidebarPanel extends JPanel {
         hostList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
                 String selected = hostList.getSelectedValue();
-                if (selected != null && "Time".equals(parent.getTopBar().getSelectedPivot()) && browseMode == BrowseMode.DAYS) {
+                if (selected != null && "Time".equals(getSelectedPivot()) && browseMode == BrowseMode.DAYS) {
                     selectedDay = LocalDate.parse(selected);
                     loadTimesForDay(selectedDay);
                 }
@@ -73,7 +85,7 @@ public class SidebarPanel extends JPanel {
         });
 
         backButton.addActionListener(e -> {
-            if ("Time".equals(parent.getTopBar().getSelectedPivot())) {
+            if ("Time".equals(getSelectedPivot())) {
                 if (browseMode == BrowseMode.TIMES) {
                     loadDays();
                     selectedDay = null;
@@ -82,19 +94,56 @@ public class SidebarPanel extends JPanel {
                 }
             }
         });
+
+        // Sidebar search: re-filter list on every change
+        searchField.getDocument().addDocumentListener(new DocumentListener() {
+            public void insertUpdate(DocumentEvent e) { applySidebarFilter(); }
+            public void removeUpdate(DocumentEvent e) { applySidebarFilter(); }
+            public void changedUpdate(DocumentEvent e) { applySidebarFilter(); }
+        });
+
+        // Pivot changes: update list contents + refresh logs
+        pivotBox.addActionListener(e -> {
+            String selected = (String) pivotBox.getSelectedItem();
+            onPivotChanged(selected);
+        });
     }
 
     private void layoutComponents() {
-        JPanel navHeader = new JPanel(new BorderLayout(10, 0));
+        JPanel navHeader = new JPanel(new BorderLayout(15, 15));
         navHeader.setOpaque(false);
-        navHeader.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
-        JLabel navLabel = new JLabel("Navigation");
+        navHeader.setBorder(BorderFactory.createEmptyBorder(0, 0, 0, 0));
+        
+        JLabel navLabel = new JLabel("NAVIGATION");
         navLabel.setFont(GUIConstants.NAV_LABEL_FONT);
         navLabel.setForeground(new Color(150, 150, 150));
-        navHeader.add(backButton, BorderLayout.WEST);
-        navHeader.add(navLabel, BorderLayout.CENTER);
+        navLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
+        // Search row: backButton + searchField
+        JPanel searchRow = new JPanel(new BorderLayout(5, 0));
+        searchRow.setOpaque(false);
+        searchRow.add(backButton, BorderLayout.WEST);
+        searchRow.add(searchField, BorderLayout.CENTER);
+        searchRow.setMaximumSize(new Dimension(270, 40));
 
+        // Stack: NAVIGATION (top), pivot (middle), search + back (bottom)
+        JPanel controls = new JPanel();
+        controls.setOpaque(false);
+        controls.setLayout(new BoxLayout(controls, BoxLayout.Y_AXIS));
+
+        navLabel.setAlignmentX(Component.CENTER_ALIGNMENT);
+        pivotBox.setAlignmentX(Component.CENTER_ALIGNMENT);
+        searchRow.setAlignmentX(Component.CENTER_ALIGNMENT);
+
+        controls.add(navLabel);
+        controls.add(Box.createVerticalStrut(12));
+        controls.add(pivotBox);
+        controls.add(Box.createVerticalStrut(12));
+        controls.add(searchRow);
+        controls.add(Box.createVerticalStrut(5));
+
+        navHeader.add(controls, BorderLayout.NORTH);
+        
         JScrollPane listScroll = new JScrollPane(hostList);
         listScroll.setBorder(BorderFactory.createLineBorder(GUIConstants.BORDER_COLOR, 1));
         listScroll.putClientProperty("JComponent.arc", 12);
@@ -110,8 +159,8 @@ public class SidebarPanel extends JPanel {
     }
 
     public void applySidebarFilter() {
-        String query = parent.getTopBar().getSearchText().toLowerCase();
-        String currentPivot = parent.getTopBar().getSelectedPivot();
+        String query = getSearchText().toLowerCase();
+        String currentPivot = getSelectedPivot();
         String currentlySelected = hostList.getSelectedValue();
 
         listModel.clear();
@@ -186,6 +235,23 @@ public class SidebarPanel extends JPanel {
         }
         backButton.setEnabled(true);
     }
+
+    public void addPivotActionListener(ActionListener listener) {
+        pivotBox.addActionListener(listener);
+    }
+
+    public String getSelectedPivot() {
+        return (String) pivotBox.getSelectedItem();
+    }
+
+    public void addSearchDocumentListener(DocumentListener listener) {
+        searchField.getDocument().addDocumentListener(listener);
+    }
+
+    public String getSearchText() {
+        return searchField.getText().trim();
+    }
+
 
     public String getSelectedKey() {
         return hostList.getSelectedValue();

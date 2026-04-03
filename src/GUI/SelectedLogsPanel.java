@@ -41,7 +41,7 @@ public class SelectedLogsPanel extends JPanel {
         logSearchField.setFont(GUIConstants.MAIN_FONT);
         logSearchField.putClientProperty("JTextField.placeholderText", "Search within logs (e.g. error, 404)...");
         logSearchField.putClientProperty("JComponent.outline", GUIConstants.ACCENT_COLOR);
-        logSearchField.setPreferredSize(new Dimension(300, 35));
+        logSearchField.setPreferredSize(new Dimension(515, 35));
 
         logSearchField.getDocument().addDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) { parent.refreshDisplay(); }
