@@ -43,6 +43,7 @@ public class LiveFeedPanel extends JPanel {
         liveLogTable.setSelectionBackground(new Color(30, 80, 150));
         liveLogTable.setSelectionForeground(Color.WHITE);
         liveLogTable.setFont(GUIConstants.MAIN_FONT);
+        liveLogTable.add(SelectedLogsPanel.getSearchField());
         
         liveLogTable.setDefaultRenderer(Object.class, new LogSeverityRenderer());
         

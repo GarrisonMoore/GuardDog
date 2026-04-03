@@ -23,7 +23,7 @@ public class SelectedLogsPanel extends JPanel {
     };
     private final JTable selectedLogTable = new JTable(logTableModel);
     private final JScrollPane selectedScroll = new JScrollPane(selectedLogTable);
-    private final JTextField logSearchField = new JTextField();
+    private static final JTextField logSearchField = new JTextField();
     private final GUI parent;
 
     public SelectedLogsPanel(GUI parent) {
@@ -122,7 +122,7 @@ public class SelectedLogsPanel extends JPanel {
         return date.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"));
     }
 
-    public JTextField getSearchField() {
+    public static JTextField getSearchField() {
         return logSearchField;
     }
 
