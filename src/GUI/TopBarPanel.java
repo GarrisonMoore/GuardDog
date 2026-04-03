@@ -25,22 +25,28 @@ public class TopBarPanel extends JPanel {
         pivotBox.putClientProperty("JComponent.outline", GUIConstants.ACCENT_COLOR);
         leftControls.add(pivotBox);
 
+        //searchField.setColumns(20);
         searchField.setFont(GUIConstants.MAIN_FONT);
         searchField.putClientProperty("JTextField.placeholderText", "Search logs...");
         searchField.putClientProperty("JComponent.outline", GUIConstants.ACCENT_COLOR);
 
+        pauseLiveFeedButton.setBorder(BorderFactory.createEmptyBorder(0, 15, 0, 15));
         pauseLiveFeedButton.setFont(GUIConstants.MAIN_FONT);
         pauseLiveFeedButton.putClientProperty("JComponent.outline", GUIConstants.ACCENT_COLOR);
+        pauseLiveFeedButton.putClientProperty("JButton.buttonType", "roundRect"); // <- key line
         pauseLiveFeedButton.setFocusPainted(false);
+        pauseLiveFeedButton.setPreferredSize(new Dimension(150, 40));
 
-        JPanel rightControls = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
-        rightControls.setOpaque(false);
-        rightControls.add(pauseLiveFeedButton);
+        JPanel centerSearchPanel = new JPanel(new FlowLayout(FlowLayout.LEFT, 0, 0));
+        centerSearchPanel.setOpaque(false);
+        searchField.setPreferredSize(new Dimension(300, 40));
+        centerSearchPanel.add(searchField);
 
         add(leftControls, BorderLayout.WEST);
-        add(searchField, BorderLayout.CENTER);
-        add(rightControls, BorderLayout.EAST);
+        add(centerSearchPanel, BorderLayout.CENTER);
     }
+
+
 
     public void addPauseLiveFeedActionListener(ActionListener listener) {
         pauseLiveFeedButton.addActionListener(listener);
@@ -65,4 +71,9 @@ public class TopBarPanel extends JPanel {
     public String getSelectedPivot() {
         return (String) pivotBox.getSelectedItem();
     }
+
+    public JButton getPauseButton() {
+        return pauseLiveFeedButton;
+    }
+
 }

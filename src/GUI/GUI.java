@@ -48,10 +48,13 @@ public class GUI extends JFrame {
         logTabs.setBorder(null);
         logTabs.setOpaque(false);
 
-        JPanel logSearchWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
-        logSearchWrap.setOpaque(false);
-        logSearchWrap.add(selectedLogsPanel.getSearchField());
-        logTabs.putClientProperty("JTabbedPane.trailingComponent", logSearchWrap);
+        // Put the Pause Live Feed button in the tab header trailing component
+        JPanel trailingWrap = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        trailingWrap.setOpaque(false);
+        trailingWrap.add(selectedLogsPanel.getSearchField());
+        trailingWrap.add(topBar.getPauseButton());
+        logTabs.putClientProperty("JTabbedPane.trailingComponent", trailingWrap);
+
 
         logTabs.addTab("SELECTED LOGS", selectedLogsPanel.getScroll());
         logTabs.addTab("LIVE FEED", liveFeedPanel.getScroll());

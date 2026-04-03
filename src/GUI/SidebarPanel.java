@@ -54,8 +54,8 @@ public class SidebarPanel extends JPanel {
             }
         });
 
-        backButton.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 16));
-        backButton.setPreferredSize(new Dimension(35, 35));
+        backButton.setFont(new Font("Segoe UI Symbol", Font.PLAIN, 14));
+        backButton.setPreferredSize(new Dimension(30, 30));
         backButton.setFocusPainted(false);
         backButton.setEnabled(false);
     }
@@ -87,12 +87,13 @@ public class SidebarPanel extends JPanel {
     private void layoutComponents() {
         JPanel navHeader = new JPanel(new BorderLayout(10, 0));
         navHeader.setOpaque(false);
-        navHeader.setBorder(BorderFactory.createEmptyBorder(0, 20, 10, 20));
+        navHeader.setBorder(BorderFactory.createEmptyBorder(0, 0, 10, 0));
         JLabel navLabel = new JLabel("Navigation");
         navLabel.setFont(GUIConstants.NAV_LABEL_FONT);
         navLabel.setForeground(new Color(150, 150, 150));
-        navHeader.add(navLabel, BorderLayout.WEST);
-        navHeader.add(backButton, BorderLayout.EAST);
+        navHeader.add(backButton, BorderLayout.WEST);
+        navHeader.add(navLabel, BorderLayout.CENTER);
+
 
         JScrollPane listScroll = new JScrollPane(hostList);
         listScroll.setBorder(BorderFactory.createLineBorder(GUIConstants.BORDER_COLOR, 1));
