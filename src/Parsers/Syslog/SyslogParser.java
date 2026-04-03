@@ -3,6 +3,8 @@ package Parsers.Syslog;
 import Interfaces.CategorizationMaster;
 import SentryStack.LogObject;
 import Interfaces.ParserMaster;
+import Interfaces.ParseStatus;
+
 
 import java.time.LocalDateTime;
 import java.time.ZoneId;
@@ -59,7 +61,7 @@ public class SyslogParser implements ParserMaster {
                     return null;
                 }
 
-                RFC5424_LOG_COUNT++;
+                ParseStatus.incrementRFC5424();
             } catch (Exception e) {
                 System.err.print("Error parsing RFC5424 log: " + e.getMessage());
                 return null;
@@ -86,7 +88,7 @@ public class SyslogParser implements ParserMaster {
                     return null;
                 }
 
-                BSD_LOG_COUNT++;
+                ParseStatus.incrementBSD();
             } catch (Exception e) {
                 System.err.print("Error parsing BSD log: " + e.getMessage());
                 return null;
@@ -102,14 +104,6 @@ public class SyslogParser implements ParserMaster {
 
         // Categorize the log object
         LogObject categorizedLogObject = CategorizationMaster.categorize(logObject);
-
-        String status = String.format(
-                "\rBSD logs processed: %d | RFC5424 logs processed: %d",
-                BSD_LOG_COUNT, RFC5424_LOG_COUNT
-        );
-        System.out.print(status);
-        System.out.flush();
-
         return categorizedLogObject;
     }
 

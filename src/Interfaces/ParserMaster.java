@@ -15,4 +15,5 @@ public abstract interface ParserMaster {
 
     // Turn this line into a SentryStack.LogObject
     LogObject parse(String rawline);
+
 }

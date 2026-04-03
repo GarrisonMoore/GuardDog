@@ -3,6 +3,8 @@ package Parsers.JSON;
 import Interfaces.CategorizationMaster;
 import Interfaces.ParserMaster;
 import SentryStack.LogObject;
+import Interfaces.ParseStatus;
+
 
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -22,7 +24,16 @@ public class JSONParser implements ParserMaster {
     @Override
     public boolean canParse(String rawline) {
         // Check if the string contains at least one opening and closing brace
-        return rawline != null && rawline.contains("{") && rawline.contains("}"); //
+        // AND looks like it has JSON key-value pairs (not just GUIDs in braces)
+        if (rawline == null || !rawline.contains("{") || !rawline.contains("}")) {
+            return false;
+        }
+        // Extract the candidate JSON portion and check for key-value pattern
+        int start = rawline.indexOf('{');
+        int end = rawline.lastIndexOf('}');
+        if (start >= end) return false;
+        String candidate = rawline.substring(start, end + 1);
+        return candidate.contains("\":");
     }
 
     @Override
@@ -34,6 +45,7 @@ public class JSONParser implements ParserMaster {
 
             // Ensure valid indices were found
             if (startIndex != -1 && endIndex != -1 && startIndex < endIndex) { //
+                ParseStatus.incrementJSON();
 
                 // Extract just the JSON portion of the string
                 String jsonPart = rawline.substring(startIndex, endIndex + 1); //
@@ -68,16 +80,11 @@ public class JSONParser implements ParserMaster {
 
                 // --- 2. Build and Categorize LogObject ---
                 LogObject logObject = new LogObject(epochTime, host, severity, category, pid, msg);
-
-                // Hand off to CategorizationMaster just like SyslogParser does!
                 return CategorizationMaster.categorize(logObject); //
-
-
             }
         } catch (JsonSyntaxException e) { //
             System.err.println("Failed to parse JSON segment: " + e.getMessage()); //
         }
-        System.out.print(" | JSON logs processed: " + JSON_LOG_COUNT++);
         return null;
     }
 }
