@@ -3,6 +3,7 @@ out/
 !**/src/main/**/out/
 !**/src/test/**/out/
 .kotlin
+*.db
 
 ### Eclipse ###
 .apt_generated
@@ -27,4 +28,4 @@ bin/
 .vscode/
 
 ### Mac OS ###
-.DS_Store
+.DS_Storeguarddog_logs.db

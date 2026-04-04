@@ -5,22 +5,29 @@ import com.formdev.flatlaf.FlatDarkLaf;
 
 import javax.swing.*;
 import java.awt.Color;
+import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
 // adding comment for FORCE PUSH GITHUB PLEASE BROOOOOOOOOOO
 public class Main extends IndexingEngine {
 
-    // Path to the Windows Event Log file
     //private static final Path LOG_FILE = Paths.get("src/test.log");
-    private static final Path LOG_FILE = Paths.get("/var/log/windows_5141.log");
+    //private static final Path LOG_FILE = Paths.get("/var/log/windows_5141.log");
 
     public static void main(String[] args) throws InterruptedException {
+
+        DatabaseEngine.initialize();
+        Runtime.getRuntime().addShutdownHook(new Thread(DatabaseEngine::close));
+
+        // Restore previously saved logs into memory so the GUI can display them
+        IndexingEngine.loadFromDatabase();
+
         // Using FlatDarkLaf for a modern look
         FlatDarkLaf.setup();
 
-        ReadmeGUI readmeGUI = new ReadmeGUI();
-        readmeGUI.getGUI();
+        //ReadmeGUI readmeGUI = new ReadmeGUI();
+        //readmeGUI.getGUI();
 
         // Global UI tweaks for a modern, cleaner look
         UIManager.put("Component.arc", 12);
@@ -55,9 +62,40 @@ public class Main extends IndexingEngine {
         SwingUtilities.invokeLater(() -> {
             new GUI();
         });
+        // --- NEW FILE SELECTION LOGIC ---
+        Path selectedLogFile = null;
 
-        // Start indexing the log file in a separate thread
-        Thread logThread = new Thread(() -> tailFile(LOG_FILE), "log-tail");
+        // 1. Check if passed as a command line argument first (e.g., java -jar SentryStack.jar /var/log/syslog)
+        if (args.length > 0) {
+            selectedLogFile = Paths.get(args[0]);
+        } else {
+            // 2. If no command line argument, open a GUI File Chooser
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle("Select Log File for Guard Dog NOC");
+
+            // Defaulting the starting directory to /var/log since that's where your logs usually sit
+            File defaultDir = new File("/var/log");
+            if (defaultDir.exists()) {
+                fileChooser.setCurrentDirectory(defaultDir);
+            }
+
+            // Bring up the dialog
+            int result = fileChooser.showOpenDialog(null);
+
+            if (result == JFileChooser.APPROVE_OPTION) {
+                selectedLogFile = fileChooser.getSelectedFile().toPath();
+            } else {
+                // User hit cancel or closed the window
+                JOptionPane.showMessageDialog(null, "No log file selected. Guard Dog is exiting.", "Error", JOptionPane.ERROR_MESSAGE);
+                System.exit(0);
+            }
+        }
+
+        // We need an effectively final variable for the lambda expression inside the Thread
+        final Path finalLogFile = selectedLogFile;
+
+        // Start indexing the log file in a separate thread using the selected file
+        Thread logThread = new Thread(() -> tailFile(finalLogFile), "log-tail");
         logThread.setDaemon(true);
         logThread.start();
 
@@ -74,6 +112,7 @@ public class Main extends IndexingEngine {
                     g.refreshDisplay();
                 });
             }
+            DatabaseEngine.commit();
         }).start();
     }
 }

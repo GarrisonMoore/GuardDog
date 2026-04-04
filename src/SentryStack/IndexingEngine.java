@@ -94,6 +94,9 @@ public class IndexingEngine{
             // index by host
             HostIndex.computeIfAbsent(logObject.getSource(), k -> new CopyOnWriteArrayList<>())
                      .add(logObject);
+
+            DatabaseEngine.insertLog(logObject);
+
         } catch (Exception e) {
             System.err.println("Error indexing log: " + e.getMessage());
         }
@@ -154,6 +157,35 @@ public class IndexingEngine{
         }
         return results;
     }
+
+    /**
+     * Load previously persisted logs from SQLite into the in-memory indexes.
+     * Called once at startup, before tailing begins.
+     */
+    public static void loadFromDatabase() {
+        List<LogObject> savedLogs = DatabaseEngine.loadRecentLogs(24 * 3);
+        for (LogObject log : savedLogs) {
+            try {
+                java.time.LocalDateTime dateTime = java.time.LocalDateTime.ofInstant(
+                        java.time.Instant.ofEpochSecond(log.getTimestamp()),
+                        java.time.ZoneId.systemDefault()
+                );
+                java.time.LocalDate day = dateTime.toLocalDate();
+                java.time.LocalTime time = dateTime.toLocalTime().withSecond(0).withNano(0);
+
+                TimeIndex.computeIfAbsent(day, k -> new ConcurrentSkipListMap<>())
+                        .computeIfAbsent(time, k -> new CopyOnWriteArrayList<>())
+                        .add(log);
+
+                HostIndex.computeIfAbsent(log.getSource(), k -> new CopyOnWriteArrayList<>())
+                        .add(log);
+            } catch (Exception e) {
+                System.err.println("Error restoring log: " + e.getMessage());
+            }
+        }
+        System.out.println("Restored " + savedLogs.size() + " logs into memory indexes.");
+    }
+
 
     // helper to show available days
     public static Set<java.time.LocalDate> getAvailableDays() {
