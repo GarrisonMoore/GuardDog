@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="SqlDialectMappings">
+    <file url="file://$APPLICATION_CONFIG_DIR$/consoles/db/1287f4ec-a08d-4687-b299-ff0b0f7c4be0/console.sql" dialect="SQLite" />
+    <file url="file://$PROJECT_DIR$/src/SentryStack/DatabaseEngine.java" dialect="GenericSQL" />
+    <file url="PROJECT" dialect="SQLite" />
+  </component>
+</project>
