@@ -163,7 +163,7 @@ public class IndexingEngine{
      * Called once at startup, before tailing begins.
      */
     public static void loadFromDatabase() {
-        List<LogObject> savedLogs = DatabaseEngine.loadRecentLogs(24);
+        List<LogObject> savedLogs = DatabaseEngine.loadRecentLogs(24 * 3);
         for (LogObject log : savedLogs) {
             try {
                 java.time.LocalDateTime dateTime = java.time.LocalDateTime.ofInstant(
