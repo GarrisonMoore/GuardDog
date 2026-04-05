@@ -170,15 +170,12 @@ public class SelectedLogsPanel extends JPanel {
     }
 
     public void clearMemory() {
-        // 1. Reset the short-circuit trackers so the UI doesn't ignore the next load
+        // Reset the short-circuit trackers so the UI doesn't ignore the next load
         lastLogCount = -1;
         lastFilter = "";
 
-        // 2. Instantly wipe the table model to detach the old data from the UI
+        // Instantly wipe the table model to detach the old data from the UI
         logTableModel.setRowCount(0);
-
-        // 3. Give the Garbage Collector a firm nudge to actually delete it from RAM
-        System.gc();
     }
 
     public JTable getSelectedLogTable() {

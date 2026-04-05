@@ -74,11 +74,9 @@ public class SidebarPanel extends JPanel {
 
     private void setupListeners() {
         hostList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                // 1. Wipe the RAM instantly BEFORE loading the new host's data
+            // Added a null check so it doesn't fire when the list is clearing/rebuilding
+            if (!e.getValueIsAdjusting() && hostList.getSelectedValue() != null) {
                 parent.getSelectedLogsPanel().clearMemory();
-
-                // 2. Fetch and render the new host's data
                 parent.refreshDisplay();
             }
         });
