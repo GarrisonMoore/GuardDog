@@ -5,88 +5,81 @@ import SentryStack.LogObject;
 import Interfaces.ParserMaster;
 import Interfaces.ParseStatus;
 
-
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SyslogParser implements ParserMaster {
 
-    int BSD_LOG_COUNT = 0;
-    int RFC5424_LOG_COUNT = 0;
-
-    // RFC-5424: <PRI>VERSION TIMESTAMP HOST APP PROCID MSGID STRUCTURED-DATA MESSAGE
+    // Matches true RFC-5424 format:
+    // Optional <PRI>VERSION, then TIMESTAMP, HOST, APP, PID, MSGID, and the rest (Structured Data + MSG)
     private static final Pattern RFC5424_PATTERN = Pattern.compile(
-            "^(\\S+)\\s+(\\S+)\\s+(\\S+\\[\\d+\\])\\s+(.*)$"
+            "^(?:<\\d+>\\d+\\s+)?(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$"
     );
 
-    // BSD syslog: "Apr  1 12:34:56 hostname message"
-    private static final Pattern BSD_PATTERN = Pattern.compile(
-            "^([A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(\\S+)\\s+(.*)$"
-    );
-    private static final java.time.format.DateTimeFormatter BSD_FORMATTER = new java.time.format.DateTimeFormatterBuilder()
-            .appendPattern("MMM d HH:mm:ss")
-            .parseDefaulting(java.time.temporal.ChronoField.YEAR, java.time.LocalDate.now().getYear())
-            .toFormatter(java.util.Locale.ENGLISH);
-
-    // override the canParse method in the Interfaces.LogParser interface (do this for any new parser)
     @Override
     public boolean canParse(String rawline) {
-
-        // make sure the line matches the RFC-5424 format
         return RFC5424_PATTERN.matcher(rawline).matches();
     }
 
-    // override the parse method in the Interfaces.LogParser interface (do this for any new parser)
-    // parse the line using the RFC-5424 and BSD format
     @Override
     public LogObject parse(String rawline) {
         Matcher m = RFC5424_PATTERN.matcher(rawline);
+
+        if (!m.matches()) {
+            return null;
+        }
 
         long epochTime = 0;
         String host = "";
         String pid = "";
         String msg = "";
 
-        if (m.matches()) {
-            try {
-                epochTime = java.time.OffsetDateTime.parse(m.group(1)).toEpochSecond();
-                host = m.group(2);
-                pid = m.group(3);
-                msg = m.group(4);
+        try {
+            // Group 1: Timestamp (e.g., 2026-04-05T10:23:14.123Z)
+            epochTime = java.time.OffsetDateTime.parse(m.group(1)).toEpochSecond();
 
-//                if (isValidHost(host)) {
-//                    return null;
-//                }
+            // Group 2: Host
+            host = m.group(2);
 
-                ParseStatus.incrementRFC5424();
-            } catch (Exception e) {
-                System.err.print("Error parsing RFC5424 log: " + e.getMessage());
+            // Group 3 is App Name (e.g., MSWinEventLog) and Group 4 is ProcID (PID)
+            String appName = m.group(3);
+            String procId = m.group(4);
+
+            // Combine AppName and ProcID for the PID field if ProcID isn't just a dash "-"
+            pid = procId.equals("-") ? appName : appName + "[" + procId + "]";
+
+            // Group 5 is MsgID (usually "-"), Group 6 is the rest of the line (Structured Data + Message)
+            msg = m.group(6);
+
+            if (!isValidHost(host)) {
                 return null;
             }
+
+            ParseStatus.incrementRFC5424();
+        } catch (Exception e) {
+            System.err.println("Error parsing RFC5424 log: " + e.getMessage());
+            return null;
         }
 
         String severity = "INFO";
         String category = "UNCATEGORIZED";
 
         // Raw log object
-        LogObject logObject = new LogObject(epochTime, host, severity, category, pid,  msg);
+        LogObject logObject = new LogObject(epochTime, host, severity, category, pid, msg);
 
         // Categorize the log object
-        LogObject categorizedLogObject = CategorizationMaster.categorize(logObject);
-        return categorizedLogObject;
+        return CategorizationMaster.categorize(logObject);
     }
 
     private boolean isValidHost(String host) {
         if (host == null || host.isBlank()) {
-            return false; // Not a valid host
+            return false;
         }
 
         String h = host.trim();
 
-        // 1. Must match standard hostname/IP characters. If it doesn't, it's invalid.
+        // 1. Must match standard hostname/IP characters.
         if (!h.matches("[A-Za-z0-9._-]+")) {
             return false;
         }
@@ -94,10 +87,9 @@ public class SyslogParser implements ParserMaster {
         // 2. Reject obvious false positives
         String lower = h.toLowerCase(Locale.ROOT);
         if (lower.equals("default") || lower.equals("operation") || lower.equals("service")) {
-            return false; // These are not valid hostnames
+            return false;
         }
 
-        // If it passes all checks, it's a valid host
         return true;
     }
 }
