@@ -66,35 +66,7 @@ public class SyslogParser implements ParserMaster {
                 System.err.print("Error parsing RFC5424 log: " + e.getMessage());
                 return null;
             }
-
-        } else {
-            m = BSD_PATTERN.matcher(rawline);
-            if (!m.matches()) {
-                return null;
-            }
-
-            try {
-                String timestampStr = m.group(1);
-                // Handle single digit day spacing if present (e.g., "Mar  1")
-                timestampStr = timestampStr.replaceAll("\\s+", " ");
-                epochTime = LocalDateTime.parse(timestampStr, BSD_FORMATTER)
-                        .atZone(ZoneId.systemDefault()).toEpochSecond();
-
-                host = m.group(2);
-                pid = "na";
-                msg = m.group(3);
-
-//                if (isValidHost(host)) {
-//                    return null;
-//                }
-
-                ParseStatus.incrementBSD();
-            } catch (Exception e) {
-                System.err.print("Error parsing BSD log: " + e.getMessage());
-                return null;
-            }
         }
-
 
         String severity = "INFO";
         String category = "UNCATEGORIZED";
