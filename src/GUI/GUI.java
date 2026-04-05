@@ -54,20 +54,20 @@ public class GUI extends JFrame {
 
         logTabs.addTab("SELECTED LOGS", selectedLogsPanel.getScroll());
         logTabs.addTab("LIVE FEED", liveFeedPanel.getScroll());
-        
+
         // Use a FlowLayout for the trailing component (Search Field)
         JPanel trailingContent = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         trailingContent.setOpaque(false);
-        
+
         // Style the pause button to look like a tab
         pauseLiveFeedButton.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
         pauseLiveFeedButton.setFont(GUIConstants.NAV_LABEL_FONT);
-        pauseLiveFeedButton.putClientProperty("JButton.buttonType", "square"); 
+        pauseLiveFeedButton.putClientProperty("JButton.buttonType", "square");
         pauseLiveFeedButton.putClientProperty("JComponent.arc", 12);
         pauseLiveFeedButton.setUI(new com.formdev.flatlaf.ui.FlatButtonUI(false) {
             @Override
             protected void paintBackground(Graphics g, JComponent c) {
-                if (((JButton)c).isContentAreaFilled()) {
+                if (((JButton) c).isContentAreaFilled()) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     try {
                         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -93,7 +93,7 @@ public class GUI extends JFrame {
         trailingContent.add(pauseLiveFeedButton);
         trailingContent.add(Box.createHorizontalStrut(20));
         trailingContent.add(selectedLogsPanel.getSearchField());
-        
+
         logTabs.putClientProperty("JTabbedPane.trailingComponent", trailingContent);
 
         centerPanel.add(logTabs, BorderLayout.CENTER);
@@ -110,9 +110,17 @@ public class GUI extends JFrame {
 
     private void setupListeners() {
         sidebar.addSearchDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { sidebar.applySidebarFilter(); }
-            public void removeUpdate(DocumentEvent e) { sidebar.applySidebarFilter(); }
-            public void changedUpdate(DocumentEvent e) { sidebar.applySidebarFilter(); }
+            public void insertUpdate(DocumentEvent e) {
+                sidebar.applySidebarFilter();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                sidebar.applySidebarFilter();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                sidebar.applySidebarFilter();
+            }
         });
 
         pauseLiveFeedButton.addActionListener(e -> {
@@ -181,5 +189,9 @@ public class GUI extends JFrame {
 
         // REMOVED: SwingUtilities.invokeLater(sidebar::applySidebarFilter);
         // REMOVED: The logic checking shouldRefresh and forcing a display refresh per log
+    }
+
+    public SelectedLogsPanel getSelectedLogsPanel() {
+        return selectedLogsPanel;
     }
 }

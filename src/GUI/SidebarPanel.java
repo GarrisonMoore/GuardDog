@@ -75,11 +75,10 @@ public class SidebarPanel extends JPanel {
     private void setupListeners() {
         hostList.addListSelectionListener(e -> {
             if (!e.getValueIsAdjusting()) {
-                String selected = hostList.getSelectedValue();
-                if (selected != null && "Time".equals(getSelectedPivot()) && browseMode == BrowseMode.DAYS) {
-                    selectedDay = LocalDate.parse(selected);
-                    loadTimesForDay(selectedDay);
-                }
+                // 1. Wipe the RAM instantly BEFORE loading the new host's data
+                parent.getSelectedLogsPanel().clearMemory();
+
+                // 2. Fetch and render the new host's data
                 parent.refreshDisplay();
             }
         });
