@@ -9,13 +9,15 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 
 public class LiveFeedPanel extends JPanel {
-    private final DefaultTableModel liveTableModel = new DefaultTableModel(
-            new Object[]{"Timestamp", "Host", "Severity", "Category", "PID", "Message"}, 0
-    ) {
-        @Override
-        public boolean isCellEditable(int row, int column) {
-            return false;
-        }
+    // 1. Update the Model to AbstractTableModel (High Performance)
+    private final java.util.List<Object[]> currentTableData = new java.util.ArrayList<>();
+    private final String[] columnNames = {"Timestamp", "Host", "Severity", "Category", "PID", "Message"};
+
+    private final javax.swing.table.AbstractTableModel liveTableModel = new javax.swing.table.AbstractTableModel() {
+        @Override public int getRowCount() { return currentTableData.size(); }
+        @Override public int getColumnCount() { return columnNames.length; }
+        @Override public String getColumnName(int col) { return columnNames[col]; }
+        @Override public Object getValueAt(int row, int col) { return currentTableData.get(row)[col]; }
     };
 
     private final JTable liveLogTable = new JTable(liveTableModel) {
@@ -93,17 +95,20 @@ public class LiveFeedPanel extends JPanel {
     private void processPendingLogs() {
         if (pendingLogs.isEmpty()) return;
 
-        boolean added = false;
+        boolean addedToTable = false;
 
-        // Dump the whole queue into the table at once
+        // 1. Process the incoming queue
         while (!pendingLogs.isEmpty()) {
             LogObject log = pendingLogs.poll();
+
             if (paused) {
                 logBuffer.addLast(log);
                 continue;
             }
+
             if (matchesFilter(log)) {
-                liveTableModel.addRow(new Object[]{
+                // Instead of .addRow, we add to our internal List
+                currentTableData.add(new Object[]{
                         formatTimestamp(log),
                         log.getSource(),
                         log.getSeverity(),
@@ -111,18 +116,22 @@ public class LiveFeedPanel extends JPanel {
                         log.getPid(),
                         log.getMessage()
                 });
-                added = true;
+                addedToTable = true;
             }
         }
 
-        // Clean up old rows ONCE per batch, not 1000 times
-        while (liveTableModel.getRowCount() > 500) {
-            liveTableModel.removeRow(0);
+        // 2. Clean up the list if it gets too long (Trimming)
+        while (currentTableData.size() > 500) {
+            currentTableData.remove(0);
         }
 
-        // Scroll to bottom ONCE per batch
-        if (added) {
-            int lastRow = liveTableModel.getRowCount() - 1;
+        // 3. Notify the UI to update the screen
+        if (addedToTable) {
+            // This fires exactly ONE event for the whole batch
+            liveTableModel.fireTableDataChanged();
+
+            // Scroll to the bottom safely on the UI thread
+            int lastRow = currentTableData.size() - 1;
             if (lastRow >= 0) {
                 liveLogTable.scrollRectToVisible(liveLogTable.getCellRect(lastRow, 0, true));
             }
@@ -139,34 +148,52 @@ public class LiveFeedPanel extends JPanel {
                 log.getSeverity().toLowerCase().contains(filter);
     }
 
+    // 3. Update refreshDisplay with the Short-Circuit and Batch Update
     public void refreshDisplay() {
         if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeLater(this::refreshDisplay);
             return;
         }
 
-        // Fetch the filter once
+        // Clear the current display list
+        currentTableData.clear();
+
         String filter = SelectedLogsPanel.getSearchField().getText().trim().toLowerCase();
 
-        // THE CPU SAVER: If no new logs arrived and search text didn't change, DO NOTHING.
+        // CPU SAVER: If nothing changed, do absolutely zero work
         if (allLiveLogs.size() == lastLogCount && filter.equals(lastFilter)) {
             return;
         }
 
-        // Update trackers for next time
         lastLogCount = allLiveLogs.size();
         lastFilter = filter;
 
-        liveTableModel.setRowCount(0);
-        for (LogObject log : allLiveLogs) {
-            if (matchesFilter(log)) {
-                addLogRowToTable(log);
+        // Build the new view in memory
+        java.util.List<Object[]> newData = new java.util.ArrayList<>();
+        synchronized(allLiveLogs) {
+            for (LogObject log : allLiveLogs) {
+                if (matchesFilter(log)) {
+                    newData.add(new Object[]{
+                            formatTimestamp(log), // Uses your static formatter
+                            log.getSource(),
+                            log.getSeverity(),
+                            log.getCategory(),
+                            log.getPid(),
+                            log.getMessage()
+                    });
+                }
             }
         }
+
+        // Hot-swap and fire exactly ONE event
+        currentTableData.clear();
+        currentTableData.addAll(newData);
+        liveTableModel.fireTableDataChanged();
     }
 
     private void addLogRowToTable(LogObject log) {
-        liveTableModel.addRow(new Object[]{
+        // 1. Add the new data to your internal list instead of the model
+        currentTableData.add(new Object[]{
                 formatTimestamp(log),
                 log.getSource(),
                 log.getSeverity(),
@@ -175,11 +202,16 @@ public class LiveFeedPanel extends JPanel {
                 log.getMessage()
         });
 
-        if (liveTableModel.getRowCount() > 500) {
-            liveTableModel.removeRow(0);
+        // 2. Enforce the 500-row limit on the list itself
+        if (currentTableData.size() > 500) {
+            currentTableData.remove(0);
         }
 
-        int lastRow = liveTableModel.getRowCount() - 1;
+        // 3. Notify the AbstractTableModel that it needs to refresh the view
+        liveTableModel.fireTableDataChanged();
+
+        // 4. Perform the auto-scroll
+        int lastRow = currentTableData.size() - 1;
         if (lastRow >= 0) {
             liveLogTable.scrollRectToVisible(liveLogTable.getCellRect(lastRow, 0, true));
         }
@@ -209,10 +241,35 @@ public class LiveFeedPanel extends JPanel {
     }
 
     private void flushBuffer() {
+        boolean added = false;
         while (!logBuffer.isEmpty()) {
             LogObject log = logBuffer.removeFirst();
             if (matchesFilter(log)) {
-                addLogRowToTable(log);
+                // Manually add to list without triggering a UI refresh yet
+                currentTableData.add(new Object[]{
+                        formatTimestamp(log),
+                        log.getSource(),
+                        log.getSeverity(),
+                        log.getCategory(),
+                        log.getPid(),
+                        log.getMessage()
+                });
+                added = true;
+            }
+        }
+
+        if (added) {
+            // Trim the list if needed
+            while (currentTableData.size() > 500) {
+                currentTableData.remove(0);
+            }
+
+            // Refresh UI once for the whole batch
+            liveTableModel.fireTableDataChanged();
+
+            int lastRow = currentTableData.size() - 1;
+            if (lastRow >= 0) {
+                liveLogTable.scrollRectToVisible(liveLogTable.getCellRect(lastRow, 0, true));
             }
         }
     }
