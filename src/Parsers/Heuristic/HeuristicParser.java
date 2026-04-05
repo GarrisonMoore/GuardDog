@@ -14,9 +14,10 @@ import java.util.regex.Pattern;
 
 public class HeuristicParser implements ParserMaster {
 
-    // Just look for something that strongly resembles a date/time combo anywhere in the line
+    // The ^ forces it to match ONLY at the beginning of the string.
+    // (?:<\\d+>)? ignores syslog priority tags like <13> if they exist.
     private static final Pattern DATE_HUNTER = Pattern.compile(
-            "(\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}|[A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})"
+            "^(?:<\\d+>)?\\s*(\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}|[A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})"
     );
 
     @Override
@@ -35,17 +36,18 @@ public class HeuristicParser implements ParserMaster {
         String message = rawline; // Default to whole line if we fail to extract
 
         try {
-            // 1. Hunt for a Timestamp
+            // 1. Hunt for a Timestamp ONLY at the beginning
             Matcher dateMatcher = DATE_HUNTER.matcher(rawline);
+
             if (dateMatcher.find()) {
                 String dateStr = dateMatcher.group(1);
-                // TODO: Add try/catch blocks here to attempt parsing dateStr with a few common DateTimeFormatters
-                // If successful, set epochTime.
 
-                // Remove the date from the raw line so we don't process it as a host/message
-                rawline = rawline.replace(dateStr, "").trim();
+                // TODO: Parse dateStr to set epochTime
+
+                // Safely chop off ONLY the matched prefix, leaving the rest of the line alone
+                rawline = rawline.substring(dateMatcher.end()).trim();
             } else {
-                // Fallback: use current time if absolutely no timestamp is found
+                // No timestamp at the very beginning, use current time
                 epochTime = System.currentTimeMillis() / 1000;
             }
 
