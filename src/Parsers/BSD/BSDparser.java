@@ -30,9 +30,17 @@ public class BSDparser implements ParserMaster {
 
     @Override
     public LogObject parse(String rawline) {
+
+        if (rawline == null || rawline.isBlank()) {
+            System.out.println("DEBUG DROP [BSD] - Blank or Null line received.");
+            return null;
+        }
+
         Matcher m = BSD_PATTERN.matcher(rawline);
 
         if (!m.matches()) {
+            // DEBUG: The regex failed completely
+            System.out.println("DEBUG DROP [BSD] - Regex Mismatch | Raw: " + rawline);
             return null;
         }
 
@@ -53,17 +61,20 @@ public class BSDparser implements ParserMaster {
             msg = m.group(3);  // Fixed: Grab the rest of the message from group 3.
 
             if (!isValidHost(host)) { // Fixed: Using whitelist validation
+                // DEBUG: The host validation failed
+                System.out.println("DEBUG DROP [BSD] - Invalid Host (" + host + ") | Raw: " + rawline);
                 return null;
             }
 
             ParseStatus.incrementBSD();
         } catch (Exception e) {
-            System.err.println("Error parsing BSD log: " + e.getMessage());
+            // DEBUG: Something threw a hard error
+            System.out.println("DEBUG DROP [BSD] - Exception: " + e.getMessage() + " | Raw: " + rawline);
             return null;
         }
 
         String severity = "INFO";
-        String category = "UNCATEGORIZED";
+        String category = "PARSER-BSD"; // Temporary Pivotbox Category
 
         // Raw log object
         LogObject logObject = new LogObject(epochTime, host, severity, category, pid, msg);

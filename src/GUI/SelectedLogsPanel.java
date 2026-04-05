@@ -10,6 +10,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 public class SelectedLogsPanel extends JPanel {
@@ -94,8 +95,10 @@ public class SelectedLogsPanel extends JPanel {
 
         String filter = logSearchField.getText().trim().toLowerCase();
         logTableModel.setRowCount(0);
+        // Create a quick snapshot of the list to prevent ConcurrentModificationException
+        List<LogObject> snapshotList = new ArrayList<>(someListOfLogs);
 
-        for (LogObject log : logs) {
+        for (LogObject log : snapshotList) {
             if (filter.isEmpty() || 
                 log.getMessage().toLowerCase().contains(filter) ||
                 log.getSource().toLowerCase().contains(filter) ||

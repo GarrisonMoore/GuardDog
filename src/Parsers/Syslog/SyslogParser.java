@@ -24,9 +24,17 @@ public class SyslogParser implements ParserMaster {
 
     @Override
     public LogObject parse(String rawline) {
+
+        if (rawline == null || rawline.isBlank()) {
+            System.out.println("DEBUG DROP [RCF5424] - Blank or Null line received.");
+            return null;
+        }
+
         Matcher m = RFC5424_PATTERN.matcher(rawline);
 
         if (!m.matches()) {
+            // DEBUG: The regex failed completely
+            System.out.println("DEBUG DROP [RFC5424] - Regex Mismatch | Raw: " + rawline);
             return null;
         }
 
@@ -53,17 +61,20 @@ public class SyslogParser implements ParserMaster {
             msg = m.group(6);
 
             if (!isValidHost(host)) {
+                // DEBUG: The host validation failed
+                System.out.println("DEBUG DROP [RFC5424] - Invalid Host (" + host + ") | Raw: " + rawline);
                 return null;
             }
 
             ParseStatus.incrementRFC5424();
         } catch (Exception e) {
-            System.err.println("Error parsing RFC5424 log: " + e.getMessage());
+            // DEBUG: Something threw a hard error
+            System.out.println("DEBUG DROP [RFC5424] - Exception: " + e.getMessage() + " | Raw: " + rawline);
             return null;
         }
 
         String severity = "INFO";
-        String category = "UNCATEGORIZED";
+        String category = "PARSER-RFC5424"; // Temporary Pivotbox Category
 
         // Raw log object
         LogObject logObject = new LogObject(epochTime, host, severity, category, pid, msg);

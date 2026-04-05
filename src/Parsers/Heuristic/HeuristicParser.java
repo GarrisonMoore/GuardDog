@@ -31,6 +31,12 @@ public class HeuristicParser implements ParserMaster {
 
     @Override
     public LogObject parse(String rawline) {
+
+        if (rawline == null || rawline.isBlank()) {
+            System.out.println("DEBUG DROP [HEURISTIC] - Blank or Null line received.");
+            return null;
+        }
+
         if (rawline == null || rawline.isBlank()) return null;
 
         long epochTime = 0;
@@ -77,12 +83,12 @@ public class HeuristicParser implements ParserMaster {
             message = String.join(" ", messageTokens);
 
         } catch (Exception e) {
-            System.err.println("Heuristic parser encountered an error, falling back to raw dump: " + e.getMessage());
+            System.out.println("DEBUG DROP [HEURISTIC] - Exception: " + e.getMessage() + " | Raw: " + rawline);
             message = rawline;
         }
 
         String severity = "INFO"; // You could add logic to hunt for "ERROR" or "WARN" in the tokens
-        String category = "HEURISTIC";
+        String category = "PARSER-HEURISTIC"; // Temporary Pivotbox Category
 
         LogObject logObject = new LogObject(epochTime, host, severity, category, pid, message);
         return CategorizationMaster.categorize(logObject);
