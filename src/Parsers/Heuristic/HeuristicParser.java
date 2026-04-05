@@ -8,6 +8,8 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -54,19 +56,21 @@ public class HeuristicParser implements ParserMaster {
             // 2. Tokenize the remaining string
             String[] tokens = rawline.split("\\s+");
             List<String> messageTokens = new ArrayList<>();
-            boolean hostFound = false;
 
-            // 3. Score the tokens
-            for (String token : tokens) {
-                // If we haven't found a host yet, check if this token looks like one
-                if (!hostFound && isLikelyHost(token)) {
-                    host = token;
-                    hostFound = true;
+            // 3. Score ONLY the first token to see if it's a host
+            if (tokens.length > 0) {
+                if (isLikelyHost(tokens[0])) {
+                    host = tokens[0];
+                    // Replaces the "for (int i = 1; ...)" loop
+                    messageTokens.addAll(Arrays.asList(tokens).subList(1, tokens.length));
                 } else {
-                    // Everything else gets dumped into the message bucket
-                    messageTokens.add(token);
+                    // Replaces the "for (int i = 0; ...)" loop
+                    Collections.addAll(messageTokens, tokens);
                 }
             }
+
+            // Rebuild the message
+            message = String.join(" ", messageTokens);
 
             // Rebuild the message
             message = String.join(" ", messageTokens);
