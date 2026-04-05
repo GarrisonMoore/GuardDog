@@ -81,8 +81,8 @@ public class SyslogParser implements ParserMaster {
                         .atZone(ZoneId.systemDefault()).toEpochSecond();
 
                 host = m.group(2);
-                pid = m.group(3);
-                msg = m.group(4);
+                pid = "na";
+                msg = m.group(3);
 
                 if (isValidHost(host)) {
                     return null;

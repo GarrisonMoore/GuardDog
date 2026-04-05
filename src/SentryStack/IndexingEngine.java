@@ -2,6 +2,7 @@ package SentryStack;
 
 import GUI.GUI;
 import Interfaces.ParserMaster;
+import Parsers.Heuristic.HeuristicParser;
 import Parsers.JSON.JSONParser;
 import Parsers.Syslog.SyslogParser;
 
@@ -27,6 +28,7 @@ public class IndexingEngine{
     static {
         parsers.add(new SyslogParser());
         parsers.add(new JSONParser());
+        parsers.add(new HeuristicParser());
         // Add other parsers here as needed
     }
 

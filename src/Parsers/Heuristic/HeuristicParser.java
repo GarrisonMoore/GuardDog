@@ -38,8 +38,8 @@ public class HeuristicParser implements ParserMaster {
         }else {
             String timestampSTR = m.group(1);
             source = m.group(2);
-            pid = m.group(3);
-            message = m.group(4);
+            pid = "N/A";          // Default to N/A or empty string
+            message = m.group(3); // Grab the rest of the line as the message
 
 
             timestamp = parseTimestamp(timestampSTR);
