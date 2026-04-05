@@ -29,8 +29,9 @@ public class IndexingEngine{
     static {
         parsers.add(new SyslogParser());
         parsers.add(new JSONParser());
-        parsers.add(new HeuristicParser());
         parsers.add(new BSDparser());
+        // Use HeuristicParser as the last parser to catch any remaining logs
+        parsers.add(new HeuristicParser());
         // Add other parsers here as needed
     }
 
