@@ -22,7 +22,27 @@ public class SelectedLogsPanel extends JPanel {
             return false;
         }
     };
-    private final JTable selectedLogTable = new JTable(logTableModel);
+
+    private final JTable selectedLogTable = new JTable(logTableModel) {
+        // Override the native tooltip method instead of using a motion listener
+        @Override
+        public String getToolTipText(java.awt.event.MouseEvent e) {
+            java.awt.Point p = e.getPoint();
+            int row = rowAtPoint(p);
+            int col = columnAtPoint(p);
+
+            // Only show the HTML tooltip if hovering over the Message column (index 5)
+            if (row >= 0 && col == 5) {
+                Object value = getValueAt(row, col);
+                if (value != null) {
+                    return "<html><body style='width: 400px;'>" + value.toString() + "</body></html>";
+                }
+            }
+            // Default behavior for other columns
+            return super.getToolTipText(e);
+        }
+    };
+
     private final JScrollPane selectedScroll = new JScrollPane(selectedLogTable);
     private static final JTextField logSearchField = new JTextField();
     private final GUI parent;
