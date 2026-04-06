@@ -192,7 +192,7 @@ public class SidebarPanel extends JPanel {
             }
         } else if ("Hostnames".equals(currentPivot)) {
             for (String host : IndexingEngine.getHostKeys()) {
-                if (host.toLowerCase().contains(query)) listModel.addElement(host);
+                if (isDisplayableHost(host) && host.toLowerCase().contains(query)) listModel.addElement(host);
             }
         } else if ("Category".equals(currentPivot)) {
             String[] categories = {"SECURITY & ERRORS", "WARNINGS", "AUTH & ACCESS", "SYSTEM & SERVICES", "POLICY & AUDIT", "NETWORK", "UNCATEGORIZED"};
@@ -217,7 +217,7 @@ public class SidebarPanel extends JPanel {
         browseMode = BrowseMode.OTHER;
 
         if ("Hostnames".equals(selected)) {
-            for (String host : IndexingEngine.getHostKeys()) listModel.addElement(host);
+            for (String host : IndexingEngine.getHostKeys()) if (isDisplayableHost(host)) listModel.addElement(host);
         } else if ("Category".equals(selected)) {
             String[] categories = {"SECURITY & ERRORS", "WARNINGS", "AUTH & ACCESS", "SYSTEM & SERVICES", "POLICY & AUDIT", "NETWORK", "UNCATEGORIZED"};
             for (String cat : categories) listModel.addElement(cat);
@@ -285,5 +285,23 @@ public class SidebarPanel extends JPanel {
 
     public void clearSelection() {
         hostList.clearSelection();
+    }
+
+    private boolean isDisplayableHost(String host) {
+        if (host == null) return false;
+        String h = host.trim();
+        if (h.isEmpty()) return false;
+        String lower = h.toLowerCase();
+        String[] stop = {"overall","remaining","logged","registration","stage","enqueue","dequeue","evaluation","flushing","bundle","post","data","machine","check"};
+        for (String s : stop) if (lower.equals(s)) return false;
+        if (h.matches("^(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)){3}$")) return true; // IPv4
+        if (h.matches("^[0-9A-Fa-f:]{2,}$") && h.contains(":")) return true; // IPv6
+        if (h.matches("^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$")) return true; // FQDN
+        if (h.matches("^[A-Za-z0-9-]{3,63}$")) {
+            boolean hasDigit = h.matches(".*[0-9].*");
+            boolean hasDash = h.contains("-");
+            return hasDigit || hasDash; // NetBIOS-like
+        }
+        return false;
     }
 }

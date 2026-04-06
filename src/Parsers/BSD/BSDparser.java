@@ -84,24 +84,29 @@ public class BSDparser implements ParserMaster {
     }
 
     private boolean isValidHost(String host) {
-        if (host == null || host.isBlank()) {
-            return false;
-        }
-
+        if (host == null) return false;
         String h = host.trim();
+        if (h.isEmpty()) return false;
 
-        // 1. Must match standard hostname/IP characters.
-        if (!h.matches("[A-Za-z0-9._-]+")) {
-            return false;
-        }
-
-        // 2. Reject obvious false positives
         String lower = h.toLowerCase(Locale.ROOT);
-        if (lower.equals("default") || lower.equals("operation") || lower.equals("service")) {
-            return false;
+        String[] stop = {"overall","remaining","logged","registration","stage","enqueue","dequeue","evaluation","flushing","bundle","post","data","machine","check"};
+        for (String s : stop) {
+            if (lower.equals(s)) return false;
         }
 
-        // Valid host
-        return true;
+        // IPv4
+        if (h.matches("^(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)){3}$")) return true;
+        // IPv6 (permissive)
+        if (h.matches("^[0-9A-Fa-f:]{2,}$") && h.contains(":")) return true;
+        // FQDN with a dot
+        if (h.matches("^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$")) return true;
+        // NetBIOS-like name, require digit or dash
+        if (h.matches("^[A-Za-z0-9-]{3,63}$")) {
+            boolean hasDigit = h.matches(".*[0-9].*");
+            boolean hasDash = h.contains("-");
+            if (hasDigit || hasDash) return true;
+            return false;
+        }
+        return false;
     }
 }
