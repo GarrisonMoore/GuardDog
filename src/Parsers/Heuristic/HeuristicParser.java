@@ -21,23 +21,12 @@ public class HeuristicParser implements ParserMaster {
     // (?:<\\d+>)? ignores syslog priority tags like <13> if they exist.
     // Safely eats Syslog priorities (<14>), version numbers (1), and timezone/milliseconds (.123Z)
     private static final Pattern DATE_HUNTER = Pattern.compile(
-            "^(?:<\\d+>)?(?:\\s*\\d+)?\\s*(\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Za-z:-]*|[A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(?:\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Za-z:-]*\\s+)?"
+            "^(?:<\\d+>)?(?:\\s*\\d+)?\\s*(\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Za-z:-]*|[A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})"
     );
-
-    // List of severities to check for
-    private static final String SEVERITIES_REGEX = "(?:INFO|WARN|ERROR|DEBUG|CRITICAL|NOTICE|EMERG|ALERT|ERR|WARNING|FATAL)";
 
     @Override
     public boolean canParse(String rawline) {
-        if (rawline == null || rawline.isBlank()) return false;
-        
-        // Only reject logs that start with a timestamp followed IMMEDIATELY by a severity
-        // This indicates a fragment from an NXLog split.
-        if (rawline.matches("^\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}\\s+" + SEVERITIES_REGEX + ".*$")) {
-            return false;
-        }
-
-        // The ultimate fallback.
+        // The ultimate fallback. If it reaches here, we try to parse it.
         return true;
     }
 
@@ -53,8 +42,6 @@ public class HeuristicParser implements ParserMaster {
 
         long epochTime = 0;
         String host = "UNKNOWN-HOST";
-        String severity = "INFO";
-        String category = "UNCATEGORIZED";
         String pid = "N/A";
         String message = rawline; // Default to whole line if we fail to extract
 
@@ -75,95 +62,34 @@ public class HeuristicParser implements ParserMaster {
             }
 
             // 2. Tokenize the remaining string
-            // Improved tokenization to handle TABS and SPACES
-            // ONLY use tab-separated logic if the line actually has enough tabs to be a structured NXLog
-            String[] tokens;
-            boolean isTabbed = rawline.contains("\t") && rawline.split("\t").length >= 4;
+            String[] tokens = rawline.split("\\s+");
+            List<String> messageTokens = new ArrayList<>();
 
-            if (isTabbed) {
-                // Split by tab but with a limit to avoid splitting the message content itself
-                // Host, Severity, Category, PID, Message (5 columns)
-                tokens = rawline.split("\t", 6);
-                List<String> messageTokens = new ArrayList<>();
-
-                if (tokens.length > 0 && isLikelyHost(tokens[0])) {
+            // 3. Score ONLY the first token to see if it's a host
+            if (tokens.length > 0) {
+                if (isLikelyHost(tokens[0])) {
                     host = tokens[0];
-                    int currentIndex = 1;
-
-                    // Try to map Severity, Category, and PID if they match expected patterns
-                    while (currentIndex < tokens.length - 1) { // Leave at least one token for message
-                        String t = tokens[currentIndex].trim();
-                        String upperT = t.toUpperCase();
-                        
-                        if (upperT.matches(SEVERITIES_REGEX)) {
-                            severity = upperT;
-                            currentIndex++;
-                        } else if (upperT.matches("^[A-Z& ]{3,24}$") && (upperT.contains("&") || upperT.contains("SYSTEM") || upperT.contains("SERVICES") || upperT.contains("AUTH") || upperT.contains("NETWORK") || upperT.contains("POLICY") || upperT.contains("AUDIT") || upperT.contains("SECURITY") || upperT.equals("UNCATEGORIZED"))) {
-                            category = upperT;
-                            currentIndex++;
-                        } else if (t.matches("^.*\\[\\d+\\].*$")) {
-                            pid = t;
-                            currentIndex++;
-                        } else {
-                            break;
-                        }
-                    }
-                    
-                    // The rest of the tokens (if any) are part of the message
-                    for (int i = currentIndex; i < tokens.length; i++) {
-                        messageTokens.add(tokens[i]);
-                    }
-                    message = String.join("\t", messageTokens).trim();
+                    // Replaces the "for (int i = 1; ...)" loop
+                    messageTokens.addAll(Arrays.asList(tokens).subList(1, tokens.length));
                 } else {
-                    message = rawline;
-                }
-            } else {
-                // Not tab-separated (or not enough tabs), fallback to space/tab mixture
-                // Use a more conservative approach: don't split the whole line, just look for the header
-                tokens = rawline.split("[\\t ]+", 6);
-                List<String> messageTokens = new ArrayList<>();
-
-                if (tokens.length > 0 && isLikelyHost(tokens[0])) {
-                    host = tokens[0];
-                    int currentIndex = 1;
-                    
-                    // For space-separated logs, we only tentatively extract severity/category
-                    // because they could easily be part of the message.
-                    while (currentIndex < tokens.length - 1) {
-                        String t = tokens[currentIndex].trim();
-                        String upperT = t.toUpperCase();
-                        if (upperT.matches(SEVERITIES_REGEX)) {
-                            severity = upperT;
-                            currentIndex++;
-                        } else {
-                            break;
-                        }
-                    }
-
-                    // We are NOT extracting Category or PID from space-separated logs here
-                    // to avoid eating the message start.
-                    
-                    // Re-calculate the message by finding the original substring to preserve internal spaces
-                    // This is safer than join(" ", tokens)
-                    int charPos = 0;
-                    for (int i = 0; i < currentIndex; i++) {
-                        charPos = rawline.indexOf(tokens[i], charPos) + tokens[i].length();
-                    }
-                    message = rawline.substring(charPos).trim();
-                } else {
-                    message = rawline;
+                    // Replaces the "for (int i = 0; ...)" loop
+                    Collections.addAll(messageTokens, tokens);
                 }
             }
-            
-            // Clean up trailing #015 (common in NXLog outputs)
-            if (message.endsWith("#015")) {
-                message = message.substring(0, message.length() - 4).trim();
-            }
+
+            // Rebuild the message
+            message = String.join(" ", messageTokens);
+
+            // Rebuild the message
+            message = String.join(" ", messageTokens);
 
         } catch (Exception e) {
             System.out.println("DEBUG DROP [HEURISTIC] - Exception: " + e.getMessage() + " | Raw: " + rawline);
             message = rawline;
         }
+
+        String severity = "INFO"; // You could add logic to hunt for "ERROR" or "WARN" in the tokens
+        String category = "PARSER-HEURISTIC"; // Temporary Pivotbox Category
 
         ParseStatus.incrementUniversal();
         LogObject logObject = new LogObject(epochTime, host, severity, category, pid, message);

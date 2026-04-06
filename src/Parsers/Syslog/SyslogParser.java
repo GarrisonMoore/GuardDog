@@ -11,33 +11,15 @@ import java.util.regex.Pattern;
 
 public class SyslogParser implements ParserMaster {
 
-    // Matches RFC-5424 format with optional second timestamp and optional version
-    // Regex updated to be more flexible and handle trailing whitespace/newlines
-    // Group 1 (Timestamp) MUST contain a 'T' to differentiate from fragments
+    // Matches true RFC-5424 format:
+    // Optional <PRI>VERSION, then TIMESTAMP, HOST, APP, PID, MSGID, and the rest (Structured Data + MSG)
     private static final Pattern RFC5424_PATTERN = Pattern.compile(
-            "^(?:<\\d+>)?(?:\\d+\\s+)?(\\S+T\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(?:\\S+\\s+)?(.*?)\\s*$"
+            "^(?:<\\d+>\\d+\\s+)?(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$"
     );
-
-    // List of severities to avoid over-stripping in cleaning logic
-    private static final String SEVERITIES_REGEX = "(?:INFO|WARN|ERROR|DEBUG|CRITICAL|NOTICE|EMERG|ALERT|ERR|WARNING|FATAL)";
 
     @Override
     public boolean canParse(String rawline) {
-        if (rawline == null || rawline.isBlank()) return false;
-
-        // Check if it's an RFC5424 log first
-        if (RFC5424_PATTERN.matcher(rawline).matches()) {
-            return true;
-        }
-
-        // Only reject logs that start with a timestamp followed IMMEDIATELY by a severity
-        // This usually indicates the second half of a log that was split by another process
-        // BUT don't reject if there is a hostname/tabbed structure (handled by Heuristic)
-        if (rawline.matches("^\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}\\s+" + SEVERITIES_REGEX + ".*$")) {
-            return false;
-        }
-
-        return false;
+        return RFC5424_PATTERN.matcher(rawline).matches();
     }
 
     @Override
@@ -78,22 +60,6 @@ public class SyslogParser implements ParserMaster {
             // Group 5 is MsgID (usually "-"), Group 6 is the rest of the line (Structured Data + Message)
             msg = m.group(6);
 
-            // NXLog syslog_ietf fix: if msg contains another timestamp (like 2026-04-06...), strip it
-            // The timestamp can be preceded by [MetaData] or similar structured data tags if they weren't matched by the regex
-            // Using CASE_INSENSITIVE to ensure it works even if the message was somehow lowercased.
-            // We use \s+ to match tabs OR spaces.
-            // ONLY strip if it's followed by Host/Severity/Category to avoid stripping timestamp-like content.
-            Pattern nxlogHeaderPattern = Pattern.compile("^(?:\\[.*?\\]\\s*)?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Z:-]*\\s+(?:\\S+\\s+)?(?:INFO|WARN|ERROR|DEBUG|CRITICAL|NOTICE|EMERG|ALERT|ERR|WARNING|FATAL)\\s+(?:SYSTEM & SERVICES|AUTH & ACCESS|NETWORK|POLICY & AUDIT|WARNINGS|SECURITY & ERRORS|UNCATEGORIZED)\\s+", Pattern.CASE_INSENSITIVE);
-            Matcher nxMatcher = nxlogHeaderPattern.matcher(msg);
-            if (nxMatcher.find()) {
-                msg = msg.substring(nxMatcher.end());
-                
-                // ONLY if we stripped a redundant header, should we also try to strip the AppName[PID] pattern
-                // because that would be the next thing in the redundant NXLog structure.
-                Pattern pidPattern = Pattern.compile("^\\S+\\[\\d+\\](?:\\[\\S+\\])?\\s+", Pattern.CASE_INSENSITIVE);
-                msg = pidPattern.matcher(msg).replaceFirst("");
-            }
-
             if (!isValidHost(host)) {
                 // DEBUG: The host validation failed
                 System.out.println("DEBUG DROP [RFC5424] - Invalid Host (" + host + ") | Raw: " + rawline);
@@ -108,7 +74,7 @@ public class SyslogParser implements ParserMaster {
         }
 
         String severity = "INFO";
-        String category = "UNCATEGORIZED";
+        String category = "PARSER-RFC5424"; // Temporary Pivotbox Category
 
         // Raw log object
         LogObject logObject = new LogObject(epochTime, host, severity, category, pid, msg);
