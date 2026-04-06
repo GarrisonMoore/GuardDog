@@ -31,7 +31,7 @@ public class GUI extends JFrame {
 
     public GUI() {
         setTitle("Guard Dog Processor - Log Management Console");
-        setSize(1300, 850);
+        setSize(1600, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBackground(GUIConstants.PANEL_BG);
         setLayout(new BorderLayout());
