@@ -120,9 +120,6 @@ public class HeuristicParser implements ParserMaster {
             // Rebuild the message
             message = String.join(" ", messageTokens);
 
-            // Rebuild the message
-            message = String.join(" ", messageTokens);
-
         } catch (Exception e) {
             System.out.println("DEBUG DROP [HEURISTIC] - Exception: " + e.getMessage() + " | Raw: " + rawline);
             message = rawline;

@@ -80,23 +80,25 @@ public class SyslogParser implements ParserMaster {
 
             // NXLog syslog_ietf fix: if msg contains another timestamp (like 2026-04-06...), strip it
             // The timestamp can be preceded by [MetaData] or similar structured data tags if they weren't matched by the regex
-            // Improved regex to avoid over-stripping:
-            // 1. Anchor the strip to the START of the message if possible
-            // 2. Only strip the timestamp and optional [MetaData]
-            msg = msg.replaceFirst("^(?:\\[.*?\\]\\s*)?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Z:-]*\\s*", "");
+            // Using CASE_INSENSITIVE to ensure it works even if the message was somehow lowercased.
+            // We use \s+ to match tabs OR spaces.
+            Pattern timestampPattern = Pattern.compile("^(?:\\[.*?\\s*\\]\\s*)?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Z:-]*\\s+", Pattern.CASE_INSENSITIVE);
+            msg = timestampPattern.matcher(msg).replaceFirst("");
 
             // If it starts with a severity (INFO, ERROR, etc.) after stripping the timestamp, strip that too
-            // BUT ONLY if there's more content after it (don't strip the whole message if it was just a severity)
-            // AND check for optional category (like tabbed format fields) that might be in the message
-            msg = msg.replaceFirst("^" + SEVERITIES_REGEX + "\\s+", "");
-            msg = msg.replaceFirst("^(?:SYSTEM & SERVICES|AUTH & ACCESS|NETWORK|POLICY & AUDIT|WARNINGS|SECURITY & ERRORS|UNCATEGORIZED)\\s+", "");
+            Pattern severityPattern = Pattern.compile("^" + SEVERITIES_REGEX + "\\s+", Pattern.CASE_INSENSITIVE);
+            msg = severityPattern.matcher(msg).replaceFirst("");
+
+            Pattern categoryPattern = Pattern.compile("^(?:SYSTEM & SERVICES|AUTH & ACCESS|NETWORK|POLICY & AUDIT|WARNINGS|SECURITY & ERRORS|UNCATEGORIZED)\\s+", Pattern.CASE_INSENSITIVE);
+            msg = categoryPattern.matcher(msg).replaceFirst("");
 
             // Also check for the Hostname that might be in the redundant header
-            msg = msg.replaceFirst("^" + Pattern.quote(host) + "\\s+", "");
+            Pattern hostPattern = Pattern.compile("^" + Pattern.quote(host) + "(?:\\.[A-Za-z0-9.-]+)?\\s+", Pattern.CASE_INSENSITIVE);
+            msg = hostPattern.matcher(msg).replaceFirst("");
 
             // Also check for the AppName[PID] pattern that might be in the redundant header
-            // Be careful to only strip if it's followed by more text
-            msg = msg.replaceFirst("^\\S+\\[\\d+\\](?:\\[\\d+\\].*?)?\\s+", "");
+            Pattern pidPattern = Pattern.compile("^\\S+\\[\\d+\\](?:\\[\\S+\\])?\\s+", Pattern.CASE_INSENSITIVE);
+            msg = pidPattern.matcher(msg).replaceFirst("");
 
             if (!isValidHost(host)) {
                 // DEBUG: The host validation failed
