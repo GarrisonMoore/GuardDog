@@ -21,7 +21,7 @@ public class HeuristicParser implements ParserMaster {
     // (?:<\\d+>)? ignores syslog priority tags like <13> if they exist.
     // Safely eats Syslog priorities (<14>), version numbers (1), and timezone/milliseconds (.123Z)
     private static final Pattern DATE_HUNTER = Pattern.compile(
-            "^(?:<\\d+>)?(?:\\s*\\d+)?\\s*(\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Za-z:-]*|[A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})"
+            "^(?:<\\d+>)?(?:\\s*\\d+)?\\s*(\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+]*[A-Za-z:-]*|[A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})"
     );
 
     @Override
@@ -52,7 +52,27 @@ public class HeuristicParser implements ParserMaster {
             if (dateMatcher.find()) {
                 String dateStr = dateMatcher.group(1);
 
-                // TODO: Parse dateStr to set epochTime
+                try {
+                    if (dateStr.matches("^[A-Z][a-z]{2}.*")) {
+                        // BSD Style: Apr  1 12:34:56
+                        String bsdDate = dateStr.replaceAll("\\s+", " ");
+                        epochTime = java.time.LocalDateTime.parse(bsdDate, new java.time.format.DateTimeFormatterBuilder()
+                                        .appendPattern("MMM d HH:mm:ss")
+                                        .parseDefaulting(java.time.temporal.ChronoField.YEAR, java.time.LocalDate.now().getYear())
+                                        .toFormatter(java.util.Locale.ENGLISH))
+                                .atZone(java.time.ZoneId.systemDefault()).toEpochSecond();
+                    } else {
+                        // ISO Style: 2026-04-06T02:35:58.760684-07:00 or 2026-04-06 02:35:58
+                        String isoDate = dateStr.replace(' ', 'T');
+                        if (!isoDate.contains("+") && !isoDate.contains("-") && !isoDate.endsWith("Z")) {
+                           epochTime = java.time.LocalDateTime.parse(isoDate).atZone(java.time.ZoneId.systemDefault()).toEpochSecond();
+                        } else {
+                           epochTime = java.time.OffsetDateTime.parse(isoDate).toEpochSecond();
+                        }
+                    }
+                } catch (Exception e) {
+                    epochTime = System.currentTimeMillis() / 1000;
+                }
 
                 // Safely chop off ONLY the matched prefix, leaving the rest of the line alone
                 rawline = rawline.substring(dateMatcher.end()).trim();

@@ -12,9 +12,9 @@ import java.util.regex.Pattern;
 public class SyslogParser implements ParserMaster {
 
     // Matches true RFC-5424 format:
-    // Optional <PRI>VERSION, then TIMESTAMP, HOST, APP, PID, MSGID, and the rest (Structured Data + MSG)
+    // Optional <PRI>VERSION, then TIMESTAMP, HOST, APP, PID, MSGID (optional), and the rest (Structured Data + MSG)
     private static final Pattern RFC5424_PATTERN = Pattern.compile(
-            "^(?:<\\d+>\\d+\\s+)?(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$"
+            "^(?:<\\d+>\\d+\\s+)?(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[^\\s]*)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)(?:\\s+(\\S+))?\\s+(.*)$"
     );
 
     @Override
@@ -53,12 +53,37 @@ public class SyslogParser implements ParserMaster {
             // Group 3 is App Name (e.g., MSWinEventLog) and Group 4 is ProcID (PID)
             String appName = m.group(3);
             String procId = m.group(4);
+            String msgId = m.group(5);
+            String rest = m.group(6);
 
-            // Combine AppName and ProcID for the PID field if ProcID isn't just a dash "-"
-            pid = procId.equals("-") ? appName : appName + "[" + procId + "]";
+            // 1. Identify the true PID and Start of Message
+            // Many Windows logs use format: APPNAME[PID] MESSAGE... (RFC3164-ish but in RFC5424 timestamp)
+            // Or APPNAME[PID] [USER] MESSAGE...
+            
+            if (appName.matches(".*\\d+\\]$") && !procId.equals("-")) {
+                // appName already has PID.
+                // Check if procId looks like a PID or a message start.
+                if (procId.matches("^\\d+$")) {
+                     // appName has one PID, but there's another one in procId? 
+                     // This happens sometimes if the app name is like "Service[123]" and procId is "456".
+                     // We'll combine them to be safe, but usually it's just one.
+                     pid = appName + "[" + procId + "]";
+                     msg = (msgId != null && !msgId.equals("-") ? msgId + " " : "") + rest;
+                } else {
+                     // procId is NOT a simple number, so it's likely part of the message.
+                     pid = appName;
+                     msg = procId + (msgId != null && !msgId.equals("-") ? " " + msgId : "") + " " + rest;
+                }
+            } else if (procId.equals("-")) {
+                pid = appName;
+                msg = (msgId != null && !msgId.equals("-") ? msgId + " " : "") + rest;
+            } else {
+                pid = appName + "[" + procId + "]";
+                msg = (msgId != null && !msgId.equals("-") ? msgId + " " : "") + rest;
+            }
 
-            // Group 5 is MsgID (usually "-"), Group 6 is the rest of the line (Structured Data + Message)
-            msg = m.group(6);
+            // Clean up double spaces if any
+            msg = msg.trim().replaceAll("\\s+", " ");
 
             if (!isValidHost(host)) {
                 // DEBUG: The host validation failed
