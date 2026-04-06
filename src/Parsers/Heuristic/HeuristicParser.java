@@ -26,7 +26,14 @@ public class HeuristicParser implements ParserMaster {
 
     @Override
     public boolean canParse(String rawline) {
-        // The ultimate fallback. If it reaches here, we try to parse it.
+        if (rawline == null || rawline.isBlank()) return false;
+        
+        // Reject lines that look like a fragment from NXLog (second timestamp with space + severity)
+        if (rawline.matches("^\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}.*\\s+(?:INFO|WARN|ERROR|DEBUG|CRITICAL).*$")) {
+            return false;
+        }
+
+        // The ultimate fallback.
         return true;
     }
 
@@ -89,7 +96,7 @@ public class HeuristicParser implements ParserMaster {
         }
 
         String severity = "INFO"; // You could add logic to hunt for "ERROR" or "WARN" in the tokens
-        String category = "PARSER-HEURISTIC"; // Temporary Pivotbox Category
+        String category = "UNCATEGORIZED";
 
         ParseStatus.incrementUniversal();
         LogObject logObject = new LogObject(epochTime, host, severity, category, pid, message);

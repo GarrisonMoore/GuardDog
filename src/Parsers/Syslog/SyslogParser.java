@@ -12,12 +12,23 @@ import java.util.regex.Pattern;
 public class SyslogParser implements ParserMaster {
 
     // Matches RFC-5424 format with optional second timestamp and optional version
+    // Regex updated to be more flexible and handle trailing whitespace/newlines
+    // Group 1 (Timestamp) MUST contain a 'T' to differentiate from fragments
     private static final Pattern RFC5424_PATTERN = Pattern.compile(
-            "^(?:<\\d+>)?(?:\\d+\\s+)?(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(?:\\S+\\s+)?(.*)$"
+            "^(?:<\\d+>)?(?:\\d+\\s+)?(\\S+T\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(?:\\S+\\s+)?(.*?)\\s*$"
     );
 
     @Override
     public boolean canParse(String rawline) {
+        if (rawline == null || rawline.isBlank()) return false;
+
+        // Reject logs that look like the second half of an NXLog (starting with a timestamp and then a severity)
+        // This prevents them from being picked up by SyslogParser or HeuristicParser
+        if (rawline.matches("^\\d{4}-\\d{2}-\\d{2}\\s+\\d{2}:\\d{2}:\\d{2}.*\\s+(?:INFO|WARN|ERROR|DEBUG|CRITICAL).*$")) {
+            return false;
+        }
+
+        // Check if it's an RFC5424 log
         return RFC5424_PATTERN.matcher(rawline).matches();
     }
 
@@ -59,10 +70,9 @@ public class SyslogParser implements ParserMaster {
             // Group 5 is MsgID (usually "-"), Group 6 is the rest of the line (Structured Data + Message)
             msg = m.group(6);
 
-            // NXLog syslog_ietf fix: if msg starts with another timestamp (like 2026-04-06...), strip it
-            if (msg.matches("^\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}.*$")) {
-                msg = msg.replaceFirst("^\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Z:-]*\\s*", "");
-            }
+            // NXLog syslog_ietf fix: if msg contains another timestamp (like 2026-04-06...), strip it
+            // The timestamp can be preceded by [MetaData] or similar structured data tags if they weren't matched by the regex
+            msg = msg.replaceFirst("(?:\\[.*?\\]\\s*)?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Z:-]*\\s*", "");
 
             if (!isValidHost(host)) {
                 // DEBUG: The host validation failed
@@ -78,7 +88,7 @@ public class SyslogParser implements ParserMaster {
         }
 
         String severity = "INFO";
-        String category = "PARSER-RFC5424"; // Temporary Pivotbox Category
+        String category = "UNCATEGORIZED";
 
         // Raw log object
         LogObject logObject = new LogObject(epochTime, host, severity, category, pid, msg);

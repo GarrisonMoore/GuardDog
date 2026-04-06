@@ -74,7 +74,7 @@ public class BSDparser implements ParserMaster {
         }
 
         String severity = "INFO";
-        String category = "PARSER-BSD"; // Temporary Pivotbox Category
+        String category = "UNCATEGORIZED";
 
         // Raw log object
         LogObject logObject = new LogObject(epochTime, host, severity, category, pid, msg);
