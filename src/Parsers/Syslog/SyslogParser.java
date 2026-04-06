@@ -14,7 +14,7 @@ public class SyslogParser implements ParserMaster {
     // Matches true RFC-5424 format:
     // Optional <PRI>VERSION, then TIMESTAMP, HOST, APP, PID, MSGID, and the rest (Structured Data + MSG)
     private static final Pattern RFC5424_PATTERN = Pattern.compile(
-            "^(<\\d+>\\d+\\s+)?(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$"
+            "^(?:<\\d+>\\d+\\s+)?(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)\\s+(.*)$"
     );
 
     @Override
