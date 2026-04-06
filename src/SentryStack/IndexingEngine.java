@@ -19,7 +19,10 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class IndexingEngine{
 
     // using a static ConcurrentHashMap to store the log objects
-    static final ConcurrentHashMap<String, List<LogObject>> HostIndex = new ConcurrentHashMap<>();
+    public static final Map<String, List<LogObject>> HostIndex = new ConcurrentHashMap<>();
+    public static final Map<String, List<LogObject>> SeverityIndex = new ConcurrentHashMap<>();
+    public static final Map<String, List<LogObject>> CategoryIndex = new ConcurrentHashMap<>();
+
     // using a static ConcurrentSkipListMap to store the log objects by time
     public static final ConcurrentSkipListMap<java.time.LocalDate, ConcurrentSkipListMap<java.time.LocalTime, List<LogObject>>> TimeIndex = new ConcurrentSkipListMap<>();
 
@@ -100,6 +103,14 @@ public class IndexingEngine{
             HostIndex.computeIfAbsent(logObject.getSource(), k -> Collections.synchronizedList(new ArrayList<>()))
                     .add(logObject);
 
+            // index by severity
+            SeverityIndex.computeIfAbsent(logObject.getSeverity().toUpperCase(), k -> Collections.synchronizedList(new ArrayList<>()))
+                    .add(logObject);
+
+            // index by category
+            CategoryIndex.computeIfAbsent(logObject.getCategory().toUpperCase(), k -> Collections.synchronizedList(new ArrayList<>()))
+                    .add(logObject);
+
             DatabaseEngine.insertLog(logObject);
 
         } catch (Exception e) {
@@ -109,32 +120,14 @@ public class IndexingEngine{
 
     // helper to get logs by severity
     public static List<LogObject> getLogsBySeverity(String level) {
-        List<LogObject> filtered = new ArrayList<>();
-        for (ConcurrentSkipListMap<java.time.LocalTime, List<LogObject>> byTime : TimeIndex.values()) {
-            for (List<LogObject> logList : byTime.values()) {
-                for (LogObject log : logList) {
-                    if (log.getSeverity().equalsIgnoreCase(level)) {
-                        filtered.add(log);
-                    }
-                }
-            }
-        }
-        return filtered;
+        if (level == null) return new ArrayList<>();
+        return new ArrayList<>(SeverityIndex.getOrDefault(level.toUpperCase(), Collections.emptyList()));
     }
 
     // helper to get logs by category
     public static List<LogObject> getLogsByCategory(String category) {
-        List<LogObject> categorizedLogs = new ArrayList<>();
-        for (ConcurrentSkipListMap<java.time.LocalTime, List<LogObject>> byTime : TimeIndex.values()) {
-            for (List<LogObject> logList : byTime.values()) {
-                for (LogObject log : logList) {
-                    if (log.getCategory().equalsIgnoreCase(category)) {
-                        categorizedLogs.add(log);
-                    }
-                }
-            }
-        }
-        return categorizedLogs;
+        if (category == null) return new ArrayList<>();
+        return new ArrayList<>(CategoryIndex.getOrDefault(category.toUpperCase(), Collections.emptyList()));
     }
 
     // helper to get logs by day

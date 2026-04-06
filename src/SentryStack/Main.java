@@ -107,14 +107,30 @@ public class Main extends IndexingEngine {
         new javax.swing.Timer(500, e -> {
             GUI g = GUI.getMyGui();
             if (g != null) {
-                g.setHosts(HostIndex.keySet());
                 g.refreshDisplay();
 
-                // Keep the sidebar updated with live counts since we removed it from appendLiveLog
+                // Keep the sidebar updated with live counts
                 g.getSidebar().applySidebarFilter();
             }
             // NEW: Push the SQLite disk I/O off the UI thread!
-            new Thread(DatabaseEngine::commit, "db-commit").start();
+            // Using a single background thread instead of spawning a new one every 500ms
+            DatabaseCommitTask.trigger();
         }).start();
+    }
+
+    private static class DatabaseCommitTask {
+        private static final java.util.concurrent.atomic.AtomicBoolean running = new java.util.concurrent.atomic.AtomicBoolean(false);
+
+        public static void trigger() {
+            if (running.compareAndSet(false, true)) {
+                new Thread(() -> {
+                    try {
+                        DatabaseEngine.commit();
+                    } finally {
+                        running.set(false);
+                    }
+                }, "db-commit").start();
+            }
+        }
     }
 }

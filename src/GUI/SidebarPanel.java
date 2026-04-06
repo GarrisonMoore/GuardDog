@@ -18,6 +18,12 @@ public class SidebarPanel extends JPanel {
     private final JButton backButton = new JButton("↩");
     private final GUI parent;
 
+    // Track state for CPU optimization
+    private String lastQuery = "";
+    private String lastPivot = "";
+    private int lastHostCount = -1;
+    private int lastDayCount = -1;
+
     private enum BrowseMode { DAYS, TIMES, OTHER }
     private BrowseMode browseMode = BrowseMode.OTHER;
     private LocalDate selectedDay = null;
@@ -159,6 +165,17 @@ public class SidebarPanel extends JPanel {
         String query = getSearchText().toLowerCase();
         String currentPivot = getSelectedPivot();
         String currentlySelected = hostList.getSelectedValue();
+
+        // THE CPU SAVER: If nothing changed, DO NOTHING.
+        if (query.equals(lastQuery) && currentPivot.equals(lastPivot) && 
+            IndexingEngine.getHostKeys().size() == lastHostCount &&
+            IndexingEngine.getAvailableDays().size() == lastDayCount) {
+            return;
+        }
+        lastQuery = query;
+        lastPivot = currentPivot;
+        lastHostCount = IndexingEngine.getHostKeys().size();
+        lastDayCount = IndexingEngine.getAvailableDays().size();
 
         listModel.clear();
 

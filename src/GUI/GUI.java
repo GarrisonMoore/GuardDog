@@ -24,6 +24,11 @@ public class GUI extends JFrame {
 
     private final JTabbedPane logTabs = new JTabbedPane();
 
+    // Track state for CPU optimization
+    private String lastSelectedKey = null;
+    private String lastSelectedPivot = null;
+    private int lastRenderedCount = -1;
+
     public GUI() {
         setTitle("Guard Dog Processor - Log Management Console");
         setSize(1300, 850);
@@ -152,7 +157,21 @@ public class GUI extends JFrame {
         String selectedKey = sidebar.getSelectedKey();
         String currentPivot = sidebar.getSelectedPivot();
 
+        // CPU SAVER: If selection hasn't changed, don't re-render everything
+        if (java.util.Objects.equals(selectedKey, lastSelectedKey) && 
+            java.util.Objects.equals(currentPivot, lastSelectedPivot)) {
+            
+            // Check if count changed for the current selection
+            int currentCount = getCountForSelection(selectedKey, currentPivot);
+            if (currentCount == lastRenderedCount) {
+                return;
+            }
+        }
+        lastSelectedKey = selectedKey;
+        lastSelectedPivot = currentPivot;
+
         if (selectedKey == null) {
+            lastRenderedCount = 0;
             selectedLogsPanel.renderLogs(new ArrayList<>());
             return;
         }
@@ -177,7 +196,27 @@ public class GUI extends JFrame {
             }
         }
 
+        lastRenderedCount = logsToDisplay.size();
         selectedLogsPanel.renderLogs(logsToDisplay);
+    }
+
+    private int getCountForSelection(String key, String pivot) {
+        if (key == null) return 0;
+        if ("Hostnames".equals(pivot)) return IndexingEngine.getLogsForHost(key).size();
+        if ("Category".equals(pivot)) return IndexingEngine.getLogsByCategory(key).size();
+        if ("Severity".equals(pivot)) return IndexingEngine.getLogsBySeverity(key).size();
+        if ("Time".equals(pivot)) {
+            if (sidebar.isTimesMode()) {
+                LocalDate day = sidebar.getSelectedDay();
+                LocalTime time = LocalTime.parse(key.length() == 5 ? key + ":00" : key);
+                return IndexingEngine.TimeIndex
+                        .getOrDefault(day, new java.util.concurrent.ConcurrentSkipListMap<>())
+                        .getOrDefault(time.withSecond(0).withNano(0), new java.util.concurrent.CopyOnWriteArrayList<>()).size();
+            } else {
+                return IndexingEngine.getLogsByDay(LocalDate.parse(key)).size();
+            }
+        }
+        return -1;
     }
 
     public void refreshLiveFeed() {
