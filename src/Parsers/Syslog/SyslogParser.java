@@ -82,21 +82,15 @@ public class SyslogParser implements ParserMaster {
             // The timestamp can be preceded by [MetaData] or similar structured data tags if they weren't matched by the regex
             // Using CASE_INSENSITIVE to ensure it works even if the message was somehow lowercased.
             // We use \s+ to match tabs OR spaces.
-            Pattern timestampPattern = Pattern.compile("^(?:\\[.*?\\s*\\]\\s*)?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Z:-]*\\s+", Pattern.CASE_INSENSITIVE);
-            msg = timestampPattern.matcher(msg).replaceFirst("");
-
-            // If it starts with a severity (INFO, ERROR, etc.) after stripping the timestamp, strip that too
-            Pattern severityPattern = Pattern.compile("^" + SEVERITIES_REGEX + "\\s+", Pattern.CASE_INSENSITIVE);
-            msg = severityPattern.matcher(msg).replaceFirst("");
-
-            Pattern categoryPattern = Pattern.compile("^(?:SYSTEM & SERVICES|AUTH & ACCESS|NETWORK|POLICY & AUDIT|WARNINGS|SECURITY & ERRORS|UNCATEGORIZED)\\s+", Pattern.CASE_INSENSITIVE);
-            msg = categoryPattern.matcher(msg).replaceFirst("");
-
-            // Also check for the Hostname that might be in the redundant header
-            Pattern hostPattern = Pattern.compile("^" + Pattern.quote(host) + "(?:\\.[A-Za-z0-9.-]+)?\\s+", Pattern.CASE_INSENSITIVE);
-            msg = hostPattern.matcher(msg).replaceFirst("");
+            // ONLY strip if it's followed by Host/Severity/Category to avoid stripping timestamp-like content.
+            Pattern nxlogHeaderPattern = Pattern.compile("^(?:\\[.*?\\]\\s*)?\\d{4}-\\d{2}-\\d{2}[ T]\\d{2}:\\d{2}:\\d{2}[\\.\\d+A-Z:-]*\\s+(?:\\S+\\s+)?(?:INFO|WARN|ERROR|DEBUG|CRITICAL|NOTICE|EMERG|ALERT|ERR|WARNING|FATAL)\\s+(?:SYSTEM & SERVICES|AUTH & ACCESS|NETWORK|POLICY & AUDIT|WARNINGS|SECURITY & ERRORS|UNCATEGORIZED)\\s+", Pattern.CASE_INSENSITIVE);
+            Matcher nxMatcher = nxlogHeaderPattern.matcher(msg);
+            if (nxMatcher.find()) {
+                msg = msg.substring(nxMatcher.end());
+            }
 
             // Also check for the AppName[PID] pattern that might be in the redundant header
+            // BUT only strip if it's right at the beginning after we've already stripped the rest.
             Pattern pidPattern = Pattern.compile("^\\S+\\[\\d+\\](?:\\[\\S+\\])?\\s+", Pattern.CASE_INSENSITIVE);
             msg = pidPattern.matcher(msg).replaceFirst("");
 

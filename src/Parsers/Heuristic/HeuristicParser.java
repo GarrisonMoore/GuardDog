@@ -76,10 +76,14 @@ public class HeuristicParser implements ParserMaster {
 
             // 2. Tokenize the remaining string
             // Improved tokenization to handle TABS and SPACES
-            // Keep tabs to identify tab-separated fields
-            String[] tokens = rawline.split("\t");
-            if (tokens.length < 2) {
-                // Not tab-separated, fallback to space/tab mixture
+            // ONLY use tab-separated logic if the line actually has enough tabs to be a structured NXLog
+            String[] tokens;
+            boolean isTabbed = rawline.contains("\t") && rawline.split("\t").length >= 4;
+
+            if (isTabbed) {
+                tokens = rawline.split("\t");
+            } else {
+                // Not tab-separated (or not enough tabs), fallback to space/tab mixture
                 tokens = rawline.split("[\\t ]+");
             }
             List<String> messageTokens = new ArrayList<>();
@@ -97,7 +101,7 @@ public class HeuristicParser implements ParserMaster {
                         if (t.matches(SEVERITIES_REGEX)) {
                             severity = t;
                             startIndex++;
-                        } else if (t.matches("^[A-Z& ]{3,20}$") && (t.contains("&") || t.contains("SYSTEM") || t.contains("SERVICES") || t.contains("AUTH") || t.contains("NETWORK"))) {
+                        } else if (isTabbed && t.matches("^[A-Z& ]{3,24}$") && (t.contains("&") || t.contains("SYSTEM") || t.contains("SERVICES") || t.contains("AUTH") || t.contains("NETWORK") || t.contains("POLICY") || t.contains("AUDIT") || t.contains("SECURITY"))) {
                             category = t;
                             startIndex++;
                         } else {
@@ -106,7 +110,8 @@ public class HeuristicParser implements ParserMaster {
                     }
 
                     // Check if the next token looks like an AppName[PID] or AppName[PID][ThreadID]
-                    if (startIndex < tokens.length && tokens[startIndex].matches("^.*\\[\\d+\\].*$")) {
+                    // ONLY take it as PID if it's really the tabbed format, otherwise it's likely message content
+                    if (isTabbed && startIndex < tokens.length && tokens[startIndex].matches("^.*\\[\\d+\\].*$")) {
                         pid = tokens[startIndex];
                         startIndex++;
                     }
@@ -118,7 +123,8 @@ public class HeuristicParser implements ParserMaster {
             }
 
             // Rebuild the message
-            message = String.join(" ", messageTokens);
+            // Preserve TABS if it was a tabbed log but we are rebuilding message
+            message = String.join(isTabbed ? "\t" : " ", messageTokens);
 
         } catch (Exception e) {
             System.out.println("DEBUG DROP [HEURISTIC] - Exception: " + e.getMessage() + " | Raw: " + rawline);
