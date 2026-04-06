@@ -74,7 +74,7 @@ public class SyslogParser implements ParserMaster {
         }
 
         String severity = "INFO";
-        String category = "PARSER-RFC5424"; // Temporary Pivotbox Category
+        String category = "UNCATEGORIZED";
 
         // Raw log object
         LogObject logObject = new LogObject(epochTime, host, severity, category, pid, msg);
