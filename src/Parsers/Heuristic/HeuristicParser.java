@@ -81,50 +81,84 @@ public class HeuristicParser implements ParserMaster {
             boolean isTabbed = rawline.contains("\t") && rawline.split("\t").length >= 4;
 
             if (isTabbed) {
-                tokens = rawline.split("\t");
+                // Split by tab but with a limit to avoid splitting the message content itself
+                // Host, Severity, Category, PID, Message (5 columns)
+                tokens = rawline.split("\t", 6);
+                List<String> messageTokens = new ArrayList<>();
+
+                if (tokens.length > 0 && isLikelyHost(tokens[0])) {
+                    host = tokens[0];
+                    int currentIndex = 1;
+
+                    // Try to map Severity, Category, and PID if they match expected patterns
+                    while (currentIndex < tokens.length - 1) { // Leave at least one token for message
+                        String t = tokens[currentIndex].trim();
+                        String upperT = t.toUpperCase();
+                        
+                        if (upperT.matches(SEVERITIES_REGEX)) {
+                            severity = upperT;
+                            currentIndex++;
+                        } else if (upperT.matches("^[A-Z& ]{3,24}$") && (upperT.contains("&") || upperT.contains("SYSTEM") || upperT.contains("SERVICES") || upperT.contains("AUTH") || upperT.contains("NETWORK") || upperT.contains("POLICY") || upperT.contains("AUDIT") || upperT.contains("SECURITY") || upperT.equals("UNCATEGORIZED"))) {
+                            category = upperT;
+                            currentIndex++;
+                        } else if (t.matches("^.*\\[\\d+\\].*$")) {
+                            pid = t;
+                            currentIndex++;
+                        } else {
+                            break;
+                        }
+                    }
+                    
+                    // The rest of the tokens (if any) are part of the message
+                    for (int i = currentIndex; i < tokens.length; i++) {
+                        messageTokens.add(tokens[i]);
+                    }
+                    message = String.join("\t", messageTokens).trim();
+                } else {
+                    message = rawline;
+                }
             } else {
                 // Not tab-separated (or not enough tabs), fallback to space/tab mixture
-                tokens = rawline.split("[\\t ]+");
-            }
-            List<String> messageTokens = new ArrayList<>();
+                // Use a more conservative approach: don't split the whole line, just look for the header
+                tokens = rawline.split("[\\t ]+", 6);
+                List<String> messageTokens = new ArrayList<>();
 
-            // 3. Score ONLY the first token to see if it's a host
-            if (tokens.length > 0) {
-                if (isLikelyHost(tokens[0])) {
+                if (tokens.length > 0 && isLikelyHost(tokens[0])) {
                     host = tokens[0];
-                    // The next few tokens might be Severity, Category, etc. if it's the tabbed format
-                    int startIndex = 1;
+                    int currentIndex = 1;
                     
-                    // Optional: Skip Severity and Category if they match patterns
-                    while (startIndex < tokens.length) {
-                        String t = tokens[startIndex].toUpperCase();
-                        if (t.matches(SEVERITIES_REGEX)) {
-                            severity = t;
-                            startIndex++;
-                        } else if (isTabbed && t.matches("^[A-Z& ]{3,24}$") && (t.contains("&") || t.contains("SYSTEM") || t.contains("SERVICES") || t.contains("AUTH") || t.contains("NETWORK") || t.contains("POLICY") || t.contains("AUDIT") || t.contains("SECURITY"))) {
-                            category = t;
-                            startIndex++;
+                    // For space-separated logs, we only tentatively extract severity/category
+                    // because they could easily be part of the message.
+                    while (currentIndex < tokens.length - 1) {
+                        String t = tokens[currentIndex].trim();
+                        String upperT = t.toUpperCase();
+                        if (upperT.matches(SEVERITIES_REGEX)) {
+                            severity = upperT;
+                            currentIndex++;
                         } else {
                             break;
                         }
                     }
 
-                    // Check if the next token looks like an AppName[PID] or AppName[PID][ThreadID]
-                    // ONLY take it as PID if it's really the tabbed format, otherwise it's likely message content
-                    if (isTabbed && startIndex < tokens.length && tokens[startIndex].matches("^.*\\[\\d+\\].*$")) {
-                        pid = tokens[startIndex];
-                        startIndex++;
+                    // We are NOT extracting Category or PID from space-separated logs here
+                    // to avoid eating the message start.
+                    
+                    // Re-calculate the message by finding the original substring to preserve internal spaces
+                    // This is safer than join(" ", tokens)
+                    int charPos = 0;
+                    for (int i = 0; i < currentIndex; i++) {
+                        charPos = rawline.indexOf(tokens[i], charPos) + tokens[i].length();
                     }
-
-                    messageTokens.addAll(Arrays.asList(tokens).subList(startIndex, tokens.length));
+                    message = rawline.substring(charPos).trim();
                 } else {
-                    Collections.addAll(messageTokens, tokens);
+                    message = rawline;
                 }
             }
-
-            // Rebuild the message
-            // Preserve TABS if it was a tabbed log but we are rebuilding message
-            message = String.join(isTabbed ? "\t" : " ", messageTokens);
+            
+            // Clean up trailing #015 (common in NXLog outputs)
+            if (message.endsWith("#015")) {
+                message = message.substring(0, message.length() - 4).trim();
+            }
 
         } catch (Exception e) {
             System.out.println("DEBUG DROP [HEURISTIC] - Exception: " + e.getMessage() + " | Raw: " + rawline);

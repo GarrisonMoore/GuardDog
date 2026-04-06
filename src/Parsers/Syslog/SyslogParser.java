@@ -87,12 +87,12 @@ public class SyslogParser implements ParserMaster {
             Matcher nxMatcher = nxlogHeaderPattern.matcher(msg);
             if (nxMatcher.find()) {
                 msg = msg.substring(nxMatcher.end());
+                
+                // ONLY if we stripped a redundant header, should we also try to strip the AppName[PID] pattern
+                // because that would be the next thing in the redundant NXLog structure.
+                Pattern pidPattern = Pattern.compile("^\\S+\\[\\d+\\](?:\\[\\S+\\])?\\s+", Pattern.CASE_INSENSITIVE);
+                msg = pidPattern.matcher(msg).replaceFirst("");
             }
-
-            // Also check for the AppName[PID] pattern that might be in the redundant header
-            // BUT only strip if it's right at the beginning after we've already stripped the rest.
-            Pattern pidPattern = Pattern.compile("^\\S+\\[\\d+\\](?:\\[\\S+\\])?\\s+", Pattern.CASE_INSENSITIVE);
-            msg = pidPattern.matcher(msg).replaceFirst("");
 
             if (!isValidHost(host)) {
                 // DEBUG: The host validation failed
