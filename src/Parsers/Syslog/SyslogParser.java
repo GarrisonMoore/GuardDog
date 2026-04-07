@@ -38,6 +38,8 @@ public class SyslogParser implements ParserMaster {
             return null;
         }
 
+
+
         long epochTime = 0;
         String host = "";
         String pid = "";
@@ -80,6 +82,10 @@ public class SyslogParser implements ParserMaster {
             } else {
                 pid = appName + "[" + procId + "]";
                 msg = (msgId != null && !msgId.equals("-") ? msgId + " " : "") + rest;
+            }
+
+            if (msg.contains("the locale specific resource for the desired message is not present")) {
+                return null;
             }
 
             // Clean up double spaces if any
