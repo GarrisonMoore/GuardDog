@@ -59,15 +59,6 @@ public class GUI extends JFrame {
 
         logTabs.addTab("SELECTED LOGS", selectedLogsPanel.getScroll());
         logTabs.addTab("LIVE FEED", liveFeedPanel.getScroll());
-        logTabs.setSelectedIndex(1); // Default to Live Feed
-
-        logTabs.addChangeListener(e -> {
-            if (logTabs.getSelectedIndex() == 0) {
-                refreshDisplay();
-            } else {
-                selectedLogsPanel.clearMemory();
-            }
-        });
 
         // Use a FlowLayout for the trailing component (Search Field)
         JPanel trailingContent = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
@@ -163,11 +154,6 @@ public class GUI extends JFrame {
     }
 
     public void refreshDisplay() {
-        // LAZY LOADING: Only render if the Selected Logs tab is visible
-        if (logTabs.getSelectedIndex() != 0) {
-            return;
-        }
-
         String selectedKey = sidebar.getSelectedKey();
         String currentPivot = sidebar.getSelectedPivot();
 

@@ -16,11 +16,12 @@ public class Main extends IndexingEngine {
     //private static final Path LOG_FILE = Paths.get("/var/log/windows_5141.log");
 
     public static void main(String[] args) throws InterruptedException {
-        // Restore previously saved logs into memory so the GUI can display them
-        IndexingEngine.loadFromDatabase();
 
         DatabaseEngine.initialize();
         Runtime.getRuntime().addShutdownHook(new Thread(DatabaseEngine::close));
+
+        // Restore previously saved logs into memory so the GUI can display them
+        IndexingEngine.loadFromDatabase();
 
         // Using FlatDarkLaf for a modern look
         FlatDarkLaf.setup();
