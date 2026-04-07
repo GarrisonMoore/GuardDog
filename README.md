@@ -11,4 +11,4 @@
 
 #### 5. Open the nxlog_universal.txt file on your dektop, copy everything, and paste it into the actual nxlog.conf file.
 #### 6. Open powershell as admin and enter "Restart-Service nxlog"
-#### 7. Search your hostname on the Syslog Webpage to mkae sure your logs are being forwarded. http://guarddog.twodoglab.local/
+#### 7. Search your hostname on the Syslog Webpage to make sure your logs are being forwarded. http://guarddog.twodoglab.local/
