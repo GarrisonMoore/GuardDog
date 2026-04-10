@@ -93,34 +93,36 @@ public class DatabaseEngine {
     }
 
     /**
-     * Load recent logs from the database (last N hours).
-     * Older logs stay safely in SQLite — memory stays bounded.
+     * Load recent logs from the database (last N hours) using a stream.
      */
-    public static List<LogObject> loadRecentLogs(int hoursBack) {
-        List<LogObject> logs = new java.util.ArrayList<>();
-        if (connection == null) return logs;
+    public static void loadRecentLogs(int hoursBack, java.util.function.Consumer<LogObject> processor) {
+        if (connection == null) return;
 
         long cutoff = java.time.Instant.now().minus(hoursBack, java.time.temporal.ChronoUnit.HOURS).getEpochSecond();
 
         String sql = "SELECT timestamp, source, severity, category, pid, message FROM logs WHERE timestamp >= ? ORDER BY timestamp";
+        int count = 0;
+
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setLong(1, cutoff);
             try (ResultSet rs = ps.executeQuery()) {
                 while (rs.next()) {
-                    logs.add(new LogObject(
+                    LogObject log = new LogObject(
                             rs.getLong("timestamp"),
                             rs.getString("source"),
                             rs.getString("severity"),
                             rs.getString("category"),
                             rs.getString("pid"),
                             rs.getString("message")
-                    ));
+                    );
+                    // Pass the log directly to the IndexingEngine one at a time
+                    processor.accept(log);
+                    count++;
                 }
             }
         } catch (SQLException e) {
             System.err.println("Failed to load logs from SQLite: " + e.getMessage());
         }
-        System.out.println("Loaded " + logs.size() + " recent logs from database (last " + hoursBack + "h).");
-        return logs;
+        System.out.println("Loaded " + count + " recent logs from database (last " + hoursBack + "h).");
     }
 }

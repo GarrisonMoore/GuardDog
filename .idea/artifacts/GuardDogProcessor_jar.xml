@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="jar" build-on-make="true" name="GuardDogProcessor:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/GuardDogProcessor_jar</output-path>
+    <root id="archive" name="GuardDogProcessor.jar">
+      <element id="module-output" name="GuardDogProcessor" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/flatlaf-3.4.1.jar" path-in-jar="/" />
+      <element id="library" level="project" name="gson-2.13.2" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/gson-2.13.2.jar" path-in-jar="/" />
+      <element id="library" level="project" name="flatlaf-3.4.1 (2)" />
+      <element id="extracted-dir" path="$PROJECT_DIR$/lib/sqlite-jdbc-3.51.3.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

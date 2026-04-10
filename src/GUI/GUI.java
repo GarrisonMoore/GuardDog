@@ -24,9 +24,14 @@ public class GUI extends JFrame {
 
     private final JTabbedPane logTabs = new JTabbedPane();
 
+    // Track state for CPU optimization
+    private String lastSelectedKey = null;
+    private String lastSelectedPivot = null;
+    private int lastRenderedCount = -1;
+
     public GUI() {
         setTitle("Guard Dog Processor - Log Management Console");
-        setSize(1300, 850);
+        setSize(1600, 500);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBackground(GUIConstants.PANEL_BG);
         setLayout(new BorderLayout());
@@ -54,20 +59,29 @@ public class GUI extends JFrame {
 
         logTabs.addTab("SELECTED LOGS", selectedLogsPanel.getScroll());
         logTabs.addTab("LIVE FEED", liveFeedPanel.getScroll());
-        
+        logTabs.setSelectedIndex(1); // Default to Live Feed
+
+        logTabs.addChangeListener(e -> {
+            if (logTabs.getSelectedIndex() == 0) {
+                refreshDisplay();
+            } else {
+                selectedLogsPanel.clearMemory();
+            }
+        });
+
         // Use a FlowLayout for the trailing component (Search Field)
         JPanel trailingContent = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
         trailingContent.setOpaque(false);
-        
+
         // Style the pause button to look like a tab
         pauseLiveFeedButton.setBorder(BorderFactory.createEmptyBorder(0, 20, 0, 20));
         pauseLiveFeedButton.setFont(GUIConstants.NAV_LABEL_FONT);
-        pauseLiveFeedButton.putClientProperty("JButton.buttonType", "square"); 
+        pauseLiveFeedButton.putClientProperty("JButton.buttonType", "square");
         pauseLiveFeedButton.putClientProperty("JComponent.arc", 12);
         pauseLiveFeedButton.setUI(new com.formdev.flatlaf.ui.FlatButtonUI(false) {
             @Override
             protected void paintBackground(Graphics g, JComponent c) {
-                if (((JButton)c).isContentAreaFilled()) {
+                if (((JButton) c).isContentAreaFilled()) {
                     Graphics2D g2 = (Graphics2D) g.create();
                     try {
                         g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
@@ -93,7 +107,7 @@ public class GUI extends JFrame {
         trailingContent.add(pauseLiveFeedButton);
         trailingContent.add(Box.createHorizontalStrut(20));
         trailingContent.add(selectedLogsPanel.getSearchField());
-        
+
         logTabs.putClientProperty("JTabbedPane.trailingComponent", trailingContent);
 
         centerPanel.add(logTabs, BorderLayout.CENTER);
@@ -110,9 +124,17 @@ public class GUI extends JFrame {
 
     private void setupListeners() {
         sidebar.addSearchDocumentListener(new DocumentListener() {
-            public void insertUpdate(DocumentEvent e) { sidebar.applySidebarFilter(); }
-            public void removeUpdate(DocumentEvent e) { sidebar.applySidebarFilter(); }
-            public void changedUpdate(DocumentEvent e) { sidebar.applySidebarFilter(); }
+            public void insertUpdate(DocumentEvent e) {
+                sidebar.applySidebarFilter();
+            }
+
+            public void removeUpdate(DocumentEvent e) {
+                sidebar.applySidebarFilter();
+            }
+
+            public void changedUpdate(DocumentEvent e) {
+                sidebar.applySidebarFilter();
+            }
         });
 
         pauseLiveFeedButton.addActionListener(e -> {
@@ -141,10 +163,29 @@ public class GUI extends JFrame {
     }
 
     public void refreshDisplay() {
+        // LAZY LOADING: Only render if the Selected Logs tab is visible
+        if (logTabs.getSelectedIndex() != 0) {
+            return;
+        }
+
         String selectedKey = sidebar.getSelectedKey();
         String currentPivot = sidebar.getSelectedPivot();
 
+        // CPU SAVER: If selection hasn't changed, don't re-render everything
+        if (java.util.Objects.equals(selectedKey, lastSelectedKey) && 
+            java.util.Objects.equals(currentPivot, lastSelectedPivot)) {
+            
+            // Check if count changed for the current selection
+            int currentCount = getCountForSelection(selectedKey, currentPivot);
+            if (currentCount == lastRenderedCount) {
+                return;
+            }
+        }
+        lastSelectedKey = selectedKey;
+        lastSelectedPivot = currentPivot;
+
         if (selectedKey == null) {
+            lastRenderedCount = 0;
             selectedLogsPanel.renderLogs(new ArrayList<>());
             return;
         }
@@ -169,7 +210,27 @@ public class GUI extends JFrame {
             }
         }
 
+        lastRenderedCount = logsToDisplay.size();
         selectedLogsPanel.renderLogs(logsToDisplay);
+    }
+
+    private int getCountForSelection(String key, String pivot) {
+        if (key == null) return 0;
+        if ("Hostnames".equals(pivot)) return IndexingEngine.getLogsForHost(key).size();
+        if ("Category".equals(pivot)) return IndexingEngine.getLogsByCategory(key).size();
+        if ("Severity".equals(pivot)) return IndexingEngine.getLogsBySeverity(key).size();
+        if ("Time".equals(pivot)) {
+            if (sidebar.isTimesMode()) {
+                LocalDate day = sidebar.getSelectedDay();
+                LocalTime time = LocalTime.parse(key.length() == 5 ? key + ":00" : key);
+                return IndexingEngine.TimeIndex
+                        .getOrDefault(day, new java.util.concurrent.ConcurrentSkipListMap<>())
+                        .getOrDefault(time.withSecond(0).withNano(0), new java.util.concurrent.CopyOnWriteArrayList<>()).size();
+            } else {
+                return IndexingEngine.getLogsByDay(LocalDate.parse(key)).size();
+            }
+        }
+        return -1;
     }
 
     public void refreshLiveFeed() {
@@ -179,21 +240,11 @@ public class GUI extends JFrame {
     public void appendLiveLog(LogObject log) {
         liveFeedPanel.appendLiveLog(log);
 
-        SwingUtilities.invokeLater(sidebar::applySidebarFilter);
+        // REMOVED: SwingUtilities.invokeLater(sidebar::applySidebarFilter);
+        // REMOVED: The logic checking shouldRefresh and forcing a display refresh per log
+    }
 
-        // If the current view matches the new log, we might want to refresh.
-        String currentPivot = sidebar.getSelectedPivot();
-        String selectedKey = sidebar.getSelectedKey();
-
-        if (selectedKey != null) {
-            boolean shouldRefresh = false;
-            if ("Hostnames".equals(currentPivot) && selectedKey.equals(log.getSource())) shouldRefresh = true;
-            else if ("Category".equals(currentPivot) && selectedKey.equals(log.getCategory())) shouldRefresh = true;
-            else if ("Severity".equals(currentPivot) && selectedKey.equals(log.getSeverity())) shouldRefresh = true;
-
-            if (shouldRefresh) {
-                SwingUtilities.invokeLater(this::refreshDisplay);
-            }
-        }
+    public SelectedLogsPanel getSelectedLogsPanel() {
+        return selectedLogsPanel;
     }
 }

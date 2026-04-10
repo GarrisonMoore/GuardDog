@@ -18,6 +18,12 @@ public class SidebarPanel extends JPanel {
     private final JButton backButton = new JButton("↩");
     private final GUI parent;
 
+    // Track state for CPU optimization
+    private String lastQuery = "";
+    private String lastPivot = "";
+    private int lastHostCount = -1;
+    private int lastDayCount = -1;
+
     private enum BrowseMode { DAYS, TIMES, OTHER }
     private BrowseMode browseMode = BrowseMode.OTHER;
     private LocalDate selectedDay = null;
@@ -74,12 +80,9 @@ public class SidebarPanel extends JPanel {
 
     private void setupListeners() {
         hostList.addListSelectionListener(e -> {
-            if (!e.getValueIsAdjusting()) {
-                String selected = hostList.getSelectedValue();
-                if (selected != null && "Time".equals(getSelectedPivot()) && browseMode == BrowseMode.DAYS) {
-                    selectedDay = LocalDate.parse(selected);
-                    loadTimesForDay(selectedDay);
-                }
+            // Added a null check so it doesn't fire when the list is clearing/rebuilding
+            if (!e.getValueIsAdjusting() && hostList.getSelectedValue() != null) {
+                parent.getSelectedLogsPanel().clearMemory();
                 parent.refreshDisplay();
             }
         });
@@ -163,6 +166,17 @@ public class SidebarPanel extends JPanel {
         String currentPivot = getSelectedPivot();
         String currentlySelected = hostList.getSelectedValue();
 
+        // THE CPU SAVER: If nothing changed, DO NOTHING.
+        if (query.equals(lastQuery) && currentPivot.equals(lastPivot) && 
+            IndexingEngine.getHostKeys().size() == lastHostCount &&
+            IndexingEngine.getAvailableDays().size() == lastDayCount) {
+            return;
+        }
+        lastQuery = query;
+        lastPivot = currentPivot;
+        lastHostCount = IndexingEngine.getHostKeys().size();
+        lastDayCount = IndexingEngine.getAvailableDays().size();
+
         listModel.clear();
 
         if ("Time".equals(currentPivot)) {
@@ -178,7 +192,7 @@ public class SidebarPanel extends JPanel {
             }
         } else if ("Hostnames".equals(currentPivot)) {
             for (String host : IndexingEngine.getHostKeys()) {
-                if (host.toLowerCase().contains(query)) listModel.addElement(host);
+                if (isDisplayableHost(host) && host.toLowerCase().contains(query)) listModel.addElement(host);
             }
         } else if ("Category".equals(currentPivot)) {
             String[] categories = {"SECURITY & ERRORS", "WARNINGS", "AUTH & ACCESS", "SYSTEM & SERVICES", "POLICY & AUDIT", "NETWORK", "UNCATEGORIZED"};
@@ -203,7 +217,7 @@ public class SidebarPanel extends JPanel {
         browseMode = BrowseMode.OTHER;
 
         if ("Hostnames".equals(selected)) {
-            for (String host : IndexingEngine.getHostKeys()) listModel.addElement(host);
+            for (String host : IndexingEngine.getHostKeys()) if (isDisplayableHost(host)) listModel.addElement(host);
         } else if ("Category".equals(selected)) {
             String[] categories = {"SECURITY & ERRORS", "WARNINGS", "AUTH & ACCESS", "SYSTEM & SERVICES", "POLICY & AUDIT", "NETWORK", "UNCATEGORIZED"};
             for (String cat : categories) listModel.addElement(cat);
@@ -271,5 +285,23 @@ public class SidebarPanel extends JPanel {
 
     public void clearSelection() {
         hostList.clearSelection();
+    }
+
+    private boolean isDisplayableHost(String host) {
+        if (host == null) return false;
+        String h = host.trim();
+        if (h.isEmpty()) return false;
+        String lower = h.toLowerCase();
+        String[] stop = {"overall","remaining","logged","registration","stage","enqueue","dequeue","evaluation","flushing","bundle","post","data","machine","check"};
+        for (String s : stop) if (lower.equals(s)) return false;
+        if (h.matches("^(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)){3}$")) return true; // IPv4
+        if (h.matches("^[0-9A-Fa-f:]{2,}$") && h.contains(":")) return true; // IPv6
+        if (h.matches("^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$")) return true; // FQDN
+        if (h.matches("^[A-Za-z0-9-]{3,63}$")) {
+            boolean hasDigit = h.matches(".*[0-9].*");
+            boolean hasDash = h.contains("-");
+            return hasDigit || hasDash; // NetBIOS-like
+        }
+        return false;
     }
 }

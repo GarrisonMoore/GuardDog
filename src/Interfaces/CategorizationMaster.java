@@ -14,8 +14,7 @@ public class CategorizationMaster {
         String message = log.getMessage().toLowerCase();
 
         // 1. Noise Filter (Throw away high-volume, low-value logs)
-        if (message.contains("the locale specific resource for the desired message is not present") ||
-            message.contains("is being suppressed") ||
+        if (message.contains("is being suppressed") ||
             message.contains("the operation was successful") ||
             message.contains("is already in the desired state")) {
             return null;
@@ -47,6 +46,7 @@ public class CategorizationMaster {
         else if (message.contains("logon") || message.contains("auth") || message.contains("access") ||
                 message.contains("request") || message.contains("login") || message.contains("ssh") ||
                 message.contains("sudo") || message.contains("su:") || message.contains("password") ||
+                message.contains("security-auditing") ||
                 message.contains("eventid: 4624") || // Windows Successful Logon
                 message.contains("eventid: 4648")) { // Logon using explicit credentials
             severity = "INFO";
@@ -58,6 +58,8 @@ public class CategorizationMaster {
                 message.contains("boot") || message.contains("shutdown") || message.contains("reboot") ||
                 message.contains("winrm") || message.contains("remote") || message.contains("management") ||
                 message.contains("powershell") || message.contains("ps ") || message.contains("cron") ||
+                message.contains("refresh") || message.contains("completed") || message.contains("started") ||
+                message.contains("taskscheduler") || message.contains("updated task") || 
                 message.contains("eventid: 7036") || // Service status change
                 message.contains("eventid: 6005") || // Event log started
                 message.contains("eventid: 6006")) { // Event log stopped

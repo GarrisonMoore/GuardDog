@@ -5,124 +5,142 @@ import SentryStack.LogObject;
 import Interfaces.ParserMaster;
 import Interfaces.ParseStatus;
 
-
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class SyslogParser implements ParserMaster {
 
-    int BSD_LOG_COUNT = 0;
-    int RFC5424_LOG_COUNT = 0;
-
-    // RFC-5424: <PRI>VERSION TIMESTAMP HOST APP PROCID MSGID STRUCTURED-DATA MESSAGE
+    // Matches true RFC-5424 format:
+    // Optional <PRI>VERSION, then TIMESTAMP, HOST, APP, PID, MSGID (optional), and the rest (Structured Data + MSG)
     private static final Pattern RFC5424_PATTERN = Pattern.compile(
-            "^(\\S+)\\s+(\\S+)\\s+(\\S+\\[\\d+\\])\\s+(.*)$"
+            "^(?:<\\d+>\\d+\\s+)?(\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}:\\d{2}[^\\s]*)\\s+(\\S+)\\s+(\\S+)\\s+(\\S+)(?:\\s+(\\S+))?\\s+(.*)$"
     );
 
-    // BSD syslog: "Apr  1 12:34:56 hostname message"
-    private static final Pattern BSD_PATTERN = Pattern.compile(
-            "^([A-Z][a-z]{2}\\s+\\d{1,2}\\s+\\d{2}:\\d{2}:\\d{2})\\s+(\\S+)\\s+(.*)$"
-    );
-    private static final java.time.format.DateTimeFormatter BSD_FORMATTER = new java.time.format.DateTimeFormatterBuilder()
-            .appendPattern("MMM d HH:mm:ss")
-            .parseDefaulting(java.time.temporal.ChronoField.YEAR, java.time.LocalDate.now().getYear())
-            .toFormatter(java.util.Locale.ENGLISH);
-
-    // override the canParse method in the Interfaces.LogParser interface (do this for any new parser)
     @Override
     public boolean canParse(String rawline) {
-
-        // make sure the line matches the RFC-5424 format
-        return RFC5424_PATTERN.matcher(rawline).matches() || BSD_PATTERN.matcher(rawline).matches();
+        return RFC5424_PATTERN.matcher(rawline).matches();
     }
 
-    // override the parse method in the Interfaces.LogParser interface (do this for any new parser)
-    // parse the line using the RFC-5424 and BSD format
     @Override
     public LogObject parse(String rawline) {
+
+        if (rawline == null || rawline.isBlank()) {
+            System.out.println("DEBUG DROP [RCF5424] - Blank or Null line received.");
+            return null;
+        }
+
         Matcher m = RFC5424_PATTERN.matcher(rawline);
+
+        if (!m.matches()) {
+            // DEBUG: The regex failed completely
+            System.out.println("DEBUG DROP [RFC5424] - Regex Mismatch | Raw: " + rawline);
+            return null;
+        }
+
+
 
         long epochTime = 0;
         String host = "";
         String pid = "";
         String msg = "";
 
-        if (m.matches()) {
-            try {
-                epochTime = java.time.OffsetDateTime.parse(m.group(1)).toEpochSecond();
-                host = m.group(2);
-                pid = m.group(3);
-                msg = m.group(4);
+        try {
+            // Group 1: Timestamp (e.g., 2026-04-05T10:23:14.123Z)
+            epochTime = java.time.OffsetDateTime.parse(m.group(1)).toEpochSecond();
 
-                if (looksLikeHost(host)) {
-                    return null;
+            // Group 2: Host
+            host = m.group(2);
+
+            // Group 3 is App Name (e.g., MSWinEventLog) and Group 4 is ProcID (PID)
+            String appName = m.group(3);
+            String procId = m.group(4);
+            String msgId = m.group(5);
+            String rest = m.group(6);
+
+            // 1. Identify the true PID and Start of Message
+            // Many Windows logs use format: APPNAME[PID] MESSAGE... (RFC3164-ish but in RFC5424 timestamp)
+            // Or APPNAME[PID] [USER] MESSAGE...
+            
+            if (appName.matches(".*\\d+\\]$") && !procId.equals("-")) {
+                // appName already has PID.
+                // Check if procId looks like a PID or a message start.
+                if (procId.matches("^\\d+$")) {
+                     // appName has one PID, but there's another one in procId? 
+                     // This happens sometimes if the app name is like "Service[123]" and procId is "456".
+                     // We'll combine them to be safe, but usually it's just one.
+                     pid = appName + "[" + procId + "]";
+                     msg = (msgId != null && !msgId.equals("-") ? msgId + " " : "") + rest;
+                } else {
+                     // procId is NOT a simple number, so it's likely part of the message.
+                     pid = appName;
+                     msg = procId + (msgId != null && !msgId.equals("-") ? " " + msgId : "") + " " + rest;
                 }
+            } else if (procId.equals("-")) {
+                pid = appName;
+                msg = (msgId != null && !msgId.equals("-") ? msgId + " " : "") + rest;
+            } else {
+                pid = appName + "[" + procId + "]";
+                msg = (msgId != null && !msgId.equals("-") ? msgId + " " : "") + rest;
+            }
 
-                ParseStatus.incrementRFC5424();
-            } catch (Exception e) {
-                System.err.print("Error parsing RFC5424 log: " + e.getMessage());
+            if (msg.contains("the locale specific resource for the desired message is not present")) {
                 return null;
             }
 
-        } else {
-            m = BSD_PATTERN.matcher(rawline);
-            if (!m.matches()) {
+            // Clean up double spaces if any
+            msg = msg.trim().replaceAll("\\s+", " ");
+
+            if (!isValidHost(host)) {
+                // DEBUG: The host validation failed
+                System.out.println("DEBUG DROP [RFC5424] - Invalid Host (" + host + ") | Raw: " + rawline);
                 return null;
             }
 
-            try {
-                String timestampStr = m.group(1);
-                // Handle single digit day spacing if present (e.g., "Mar  1")
-                timestampStr = timestampStr.replaceAll("\\s+", " ");
-                epochTime = LocalDateTime.parse(timestampStr, BSD_FORMATTER)
-                        .atZone(ZoneId.systemDefault()).toEpochSecond();
-
-                host = m.group(2);
-                pid = m.group(3);
-                msg = m.group(4);
-
-                if (looksLikeHost(host)) {
-                    return null;
-                }
-
-                ParseStatus.incrementBSD();
-            } catch (Exception e) {
-                System.err.print("Error parsing BSD log: " + e.getMessage());
-                return null;
-            }
+            ParseStatus.incrementRFC5424();
+        } catch (Exception e) {
+            // DEBUG: Something threw a hard error
+            System.out.println("DEBUG DROP [RFC5424] - Exception: " + e.getMessage() + " | Raw: " + rawline);
+            return null;
         }
-
 
         String severity = "INFO";
         String category = "UNCATEGORIZED";
 
         // Raw log object
-        LogObject logObject = new LogObject(epochTime, host, severity, category, pid,  msg);
+        LogObject logObject = new LogObject(epochTime, host, severity, category, pid, msg);
 
         // Categorize the log object
-        LogObject categorizedLogObject = CategorizationMaster.categorize(logObject);
-        return categorizedLogObject;
+        return CategorizationMaster.categorize(logObject);
     }
 
-    private boolean looksLikeHost(String host) {
-        if (host == null || host.isBlank()) {
+    private boolean isValidHost(String host) {
+        if (host == null) return false;
+        String h = host.trim();
+        if (h.isEmpty()) return false;
+
+        String lower = h.toLowerCase(Locale.ROOT);
+
+        // Common words seen in messages that should never be hosts
+        String[] stop = {"overall","remaining","logged","registration","stage","enqueue","dequeue","evaluation","flushing","bundle","post","data","machine","check"};
+        for (String s : stop) {
+            if (lower.equals(s)) return false;
+        }
+
+        // IPv4
+        if (h.matches("^(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)){3}$")) return true;
+        // IPv6 (very permissive)
+        if (h.matches("^[0-9A-Fa-f:]{2,}$") && h.contains(":")) return true;
+        // FQDN with at least one dot
+        if (h.matches("^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$")) return true;
+        // NetBIOS-like: allow letters/digits and dashes, require at least one digit or dash to avoid plain words
+        if (h.matches("^[A-Za-z0-9-]{3,63}$")) {
+            boolean hasDigit = h.matches(".*[0-9].*");
+            boolean hasDash = h.contains("-");
+            if (hasDigit || hasDash) return true;
             return false;
         }
 
-        String h = host.trim();
-
-        // Accept normal hostnames / IP-ish values
-        if (!h.matches("[A-Za-z0-9._-]+") || h.contains("10.202.69.")) {
-            return true;
-        }
-
-        // Reject obvious false positives
-        String lower = h.toLowerCase(Locale.ROOT);
-        return lower.equals("default")
-                || lower.equals("operation")
-                || lower.equals("service");
+        return false;
     }
 }
