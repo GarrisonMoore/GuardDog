@@ -18,78 +18,14 @@ public class SelectedLogsPanel extends JPanel {
 
     private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
 
-    private static class LogTableModel extends javax.swing.table.AbstractTableModel {
-        private final String[] columnNames = {"Timestamp", "Host", "Severity", "Category", "PID", "Message"};
-        private List<LogObject> logs = new ArrayList<>();
-        private List<LogObject> filteredLogs = new ArrayList<>();
-        private String filter = "";
-
-        public void setLogs(List<LogObject> logs, String filter) {
-            this.logs = logs;
-            this.filter = filter.toLowerCase();
-            applyFilter();
-        }
-
-        private void applyFilter() {
-            if (filter.isEmpty()) {
-                filteredLogs = new ArrayList<>(logs);
-            } else {
-                filteredLogs = new ArrayList<>();
-                for (LogObject log : logs) {
-                    if (log.getMessage().toLowerCase().contains(filter) ||
-                            log.getSource().toLowerCase().contains(filter) ||
-                            log.getCategory().toLowerCase().contains(filter) ||
-                            log.getSeverity().toLowerCase().contains(filter)) {
-                        filteredLogs.add(log);
-                    }
-                }
-            }
-            fireTableDataChanged();
-        }
-
+    private final DefaultTableModel logTableModel = new DefaultTableModel(
+            new Object[]{"Timestamp", "Host", "Severity", "Category", "PID", "Message"}, 0
+    ) {
         @Override
-        public int getRowCount() {
-            return filteredLogs.size();
+        public boolean isCellEditable(int row, int column) {
+            return false;
         }
-
-        @Override
-        public int getColumnCount() {
-            return columnNames.length;
-        }
-
-        @Override
-        public String getColumnName(int column) {
-            return columnNames[column];
-        }
-
-        @Override
-        public Object getValueAt(int rowIndex, int columnIndex) {
-            if (rowIndex < 0 || rowIndex >= filteredLogs.size()) return null;
-            LogObject log = filteredLogs.get(rowIndex);
-            switch (columnIndex) {
-                case 0: return formatTimestamp(log);
-                case 1: return log.getSource();
-                case 2: return log.getSeverity();
-                case 3: return log.getCategory();
-                case 4: return log.getPid();
-                case 5: return log.getMessage();
-                default: return null;
-            }
-        }
-
-        private String formatTimestamp(LogObject log) {
-            return LocalDateTime.ofInstant(Instant.ofEpochSecond(log.getTimestamp()), ZoneId.systemDefault())
-                    .format(DATE_FORMATTER);
-        }
-
-        public void clear() {
-            this.logs = new ArrayList<>();
-            this.filteredLogs = new ArrayList<>();
-            fireTableDataChanged();
-        }
-    }
-
-    private final LogTableModel logTableModel = new LogTableModel();
+    };
 
     // Tracks the last known state so we don't do useless redraws
     private int lastLogCount = -1;
@@ -190,10 +126,41 @@ public class SelectedLogsPanel extends JPanel {
         lastLogCount = logs.size();
         lastFilter = filter;
 
-        // Push all data to the UI.
-        logTableModel.setLogs(logs, filter);
+        // --- 1. THE SNAPSHOT LIST ---
+        // We make a quick copy of the incoming 'logs' to prevent the
+        // background thread from crashing the UI if it adds a new log right now.
+        List<LogObject> snapshotList = new ArrayList<>(logs);
 
-        // Re-apply column sizing if model update overwrites them
+        // --- 2. UI OPTIMIZATION ---
+        // Build a temporary 2D array to hold the data so we only update the table ONCE
+        Object[][] tableData = new Object[snapshotList.size()][6];
+        int addedCount = 0;
+
+        for (LogObject log : snapshotList) {
+            if (filter.isEmpty() ||
+                    log.getMessage().toLowerCase().contains(filter) ||
+                    log.getSource().toLowerCase().contains(filter) ||
+                    log.getCategory().toLowerCase().contains(filter) ||
+                    log.getSeverity().toLowerCase().contains(filter)) {
+
+                tableData[addedCount] = new Object[]{
+                        formatTimestamp(log),  // (Make sure you also added the static DATE_FORMATTER fix for this!)
+                        log.getSource(),
+                        log.getSeverity(),
+                        log.getCategory(),
+                        log.getPid(),
+                        log.getMessage()
+                };
+                addedCount++;
+            }
+        }
+        // Trim the array to exact size if the filter removed anything
+        Object[][] finalData = java.util.Arrays.copyOf(tableData, addedCount);
+
+        // Push all data to the UI at exactly the same time. This fires only ONE event!
+        logTableModel.setDataVector(finalData, new Object[]{"Timestamp", "Host", "Severity", "Category", "PID", "Message"});
+
+        // Re-apply column sizing if setDataVector overwrites them
         selectedLogTable.getColumnModel().getColumn(5).setPreferredWidth(600);
     }
 
@@ -208,7 +175,7 @@ public class SelectedLogsPanel extends JPanel {
         lastFilter = "";
 
         // Instantly wipe the table model to detach the old data from the UI
-        logTableModel.clear();
+        logTableModel.setRowCount(0);
     }
 
     public JTable getSelectedLogTable() {
