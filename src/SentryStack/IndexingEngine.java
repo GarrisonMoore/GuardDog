@@ -13,10 +13,9 @@ import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 
-public class IndexingEngine{
+public class IndexingEngine {
 
     // using a static ConcurrentHashMap to store the log objects
     public static final Map<String, List<LogObject>> HostIndex = new ConcurrentHashMap<>();
@@ -52,7 +51,7 @@ public class IndexingEngine{
                 // Seek to the end of the file. 
                 // To support a small amount of history (e.g., last 10KB), we could seek to fileLength - 10240
                 raf.seek(fileLength);
-                
+
                 // read the file line by line as new content is appended
                 while (true) {
                     String line = raf.readLine();
@@ -163,6 +162,7 @@ public class IndexingEngine{
     public static void loadFromDatabase() {
         DatabaseEngine.loadRecentLogs(24 * 3, log -> {
             try {
+                // Existing time/date parsing...
                 java.time.LocalDateTime dateTime = java.time.LocalDateTime.ofInstant(
                         java.time.Instant.ofEpochSecond(log.getTimestamp()),
                         java.time.ZoneId.systemDefault()
@@ -170,18 +170,26 @@ public class IndexingEngine{
                 java.time.LocalDate day = dateTime.toLocalDate();
                 java.time.LocalTime time = dateTime.toLocalTime().withSecond(0).withNano(0);
 
+                // Ensure these are all being populated:
                 TimeIndex.computeIfAbsent(day, k -> new ConcurrentSkipListMap<>())
                         .computeIfAbsent(time, k -> Collections.synchronizedList(new ArrayList<>()))
                         .add(log);
 
                 HostIndex.computeIfAbsent(log.getSource(), k -> Collections.synchronizedList(new ArrayList<>()))
                         .add(log);
+
+                // Add Severity and Category mapping so the GUI sidebar can pull the history
+                SeverityIndex.computeIfAbsent(log.getSeverity().toUpperCase(), k -> Collections.synchronizedList(new ArrayList<>()))
+                        .add(log);
+
+                CategoryIndex.computeIfAbsent(log.getCategory().toUpperCase(), k -> Collections.synchronizedList(new ArrayList<>()))
+                        .add(log);
+
             } catch (Exception e) {
                 System.err.println("Error restoring log: " + e.getMessage());
             }
         });
     }
-
 
     // helper to show available days
     public static Set<java.time.LocalDate> getAvailableDays() {
