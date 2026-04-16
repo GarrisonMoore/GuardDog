@@ -121,7 +121,7 @@ public class LiveFeedPanel extends JPanel {
         }
 
         // 2. Clean up the list if it gets too long (Trimming)
-        while (currentTableData.size() > 500) {
+        while (currentTableData.size() > 2000) {
             currentTableData.remove(0);
         }
 
