@@ -196,6 +196,9 @@ public class GUI extends JFrame {
             }
         }
 
+        // Ensure logs are ordered by timestamp (Ascending)
+        logsToDisplay.sort(java.util.Comparator.comparingLong(LogObject::getTimestamp));
+
         lastRenderedCount = logsToDisplay.size();
         selectedLogsPanel.renderLogs(logsToDisplay);
     }
