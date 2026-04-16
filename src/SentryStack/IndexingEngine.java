@@ -18,12 +18,12 @@ import java.util.concurrent.ConcurrentSkipListMap;
 public class IndexingEngine {
 
     // using a static ConcurrentHashMap to store the log objects
-    public static final Map<String, List<LogObject>> HostIndex = new ConcurrentHashMap<>();
-    public static final Map<String, List<LogObject>> SeverityIndex = new ConcurrentHashMap<>();
-    public static final Map<String, List<LogObject>> CategoryIndex = new ConcurrentHashMap<>();
+    public static final Map<String, Set<LogObject>> HostIndex = new ConcurrentHashMap<>();
+    public static final Map<String, Set<LogObject>> SeverityIndex = new ConcurrentHashMap<>();
+    public static final Map<String, Set<LogObject>> CategoryIndex = new ConcurrentHashMap<>();
 
     // using a static ConcurrentSkipListMap to store the log objects by time
-    public static final ConcurrentSkipListMap<java.time.LocalDate, ConcurrentSkipListMap<java.time.LocalTime, List<LogObject>>> TimeIndex = new ConcurrentSkipListMap<>();
+    public static final ConcurrentSkipListMap<java.time.LocalDate, ConcurrentSkipListMap<java.time.LocalTime, Set<LogObject>>> TimeIndex = new ConcurrentSkipListMap<>();
 
     // List of parsers to use
     private static final List<ParserMaster> parsers = new ArrayList<>();
@@ -57,9 +57,17 @@ public class IndexingEngine {
                     String line = raf.readLine();
                     // make sure we don't use a null line
                     if (line == null) {
-                        Thread.sleep(100);
+                        if (raf.length() < raf.getFilePointer()) {
+                            // File was truncated
+                            raf.seek(0);
+                        } else {
+                            Thread.sleep(250);
+                        }
                         continue;
                     }
+
+                    // Decode ISO-8859-1 to UTF-8 (readLine uses ISO-8859-1)
+                    line = new String(line.getBytes(java.nio.charset.StandardCharsets.ISO_8859_1), java.nio.charset.StandardCharsets.UTF_8);
 
                     // Try each parser
                     for (ParserMaster parser : parsers) {
@@ -75,8 +83,6 @@ public class IndexingEngine {
                             }
                         }
                     }
-                    // Throttle to keep app responsive
-                    Thread.sleep(1);
                 }
             }
         } catch (Exception e) { // catch any exceptions that might occur
@@ -85,6 +91,10 @@ public class IndexingEngine {
     }
 
     private static void indexLog(LogObject logObject) {
+        indexLog(logObject, true);
+    }
+
+    private static void indexLog(LogObject logObject, boolean persist) {
         try {
             java.time.LocalDateTime dateTime = java.time.LocalDateTime.ofInstant(
                     java.time.Instant.ofEpochSecond(logObject.getTimestamp()),
@@ -95,22 +105,24 @@ public class IndexingEngine {
 
             // index by time
             TimeIndex.computeIfAbsent(day, k -> new ConcurrentSkipListMap<>())
-                    .computeIfAbsent(time, k -> Collections.synchronizedList(new ArrayList<>()))
+                    .computeIfAbsent(time, k -> java.util.concurrent.ConcurrentHashMap.newKeySet())
                     .add(logObject);
 
             // index by host
-            HostIndex.computeIfAbsent(logObject.getSource(), k -> Collections.synchronizedList(new ArrayList<>()))
+            HostIndex.computeIfAbsent(logObject.getSource(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet())
                     .add(logObject);
 
             // index by severity
-            SeverityIndex.computeIfAbsent(logObject.getSeverity().toUpperCase(), k -> Collections.synchronizedList(new ArrayList<>()))
+            SeverityIndex.computeIfAbsent(logObject.getSeverity().toUpperCase(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet())
                     .add(logObject);
 
             // index by category
-            CategoryIndex.computeIfAbsent(logObject.getCategory().toUpperCase(), k -> Collections.synchronizedList(new ArrayList<>()))
+            CategoryIndex.computeIfAbsent(logObject.getCategory().toUpperCase(), k -> java.util.concurrent.ConcurrentHashMap.newKeySet())
                     .add(logObject);
 
-            DatabaseEngine.insertLog(logObject);
+            if (persist) {
+                DatabaseEngine.insertLog(logObject);
+            }
 
         } catch (Exception e) {
             System.err.println("Error indexing log: " + e.getMessage());
@@ -120,21 +132,21 @@ public class IndexingEngine {
     // helper to get logs by severity
     public static List<LogObject> getLogsBySeverity(String level) {
         if (level == null) return new ArrayList<>();
-        return new ArrayList<>(SeverityIndex.getOrDefault(level.toUpperCase(), Collections.emptyList()));
+        return new ArrayList<>(SeverityIndex.getOrDefault(level.toUpperCase(), Collections.emptySet()));
     }
 
     // helper to get logs by category
     public static List<LogObject> getLogsByCategory(String category) {
         if (category == null) return new ArrayList<>();
-        return new ArrayList<>(CategoryIndex.getOrDefault(category.toUpperCase(), Collections.emptyList()));
+        return new ArrayList<>(CategoryIndex.getOrDefault(category.toUpperCase(), Collections.emptySet()));
     }
 
     // helper to get logs by day
     public static List<LogObject> getLogsByDay(java.time.LocalDate day) {
         List<LogObject> results = new ArrayList<>();
-        ConcurrentSkipListMap<java.time.LocalTime, List<LogObject>> byTime = TimeIndex.get(day);
+        ConcurrentSkipListMap<java.time.LocalTime, Set<LogObject>> byTime = TimeIndex.get(day);
         if (byTime != null) {
-            for (List<LogObject> logs : byTime.values()) {
+            for (Set<LogObject> logs : byTime.values()) {
                 results.addAll(logs);
             }
         }
@@ -146,9 +158,9 @@ public class IndexingEngine {
                                                       java.time.LocalTime start,
                                                       java.time.LocalTime end) {
         List<LogObject> results = new ArrayList<>();
-        ConcurrentSkipListMap<java.time.LocalTime, List<LogObject>> byTime = TimeIndex.get(day);
+        ConcurrentSkipListMap<java.time.LocalTime, Set<LogObject>> byTime = TimeIndex.get(day);
         if (byTime != null) {
-            for (List<LogObject> logs : byTime.subMap(start, true, end, true).values()) {
+            for (Set<LogObject> logs : byTime.subMap(start, true, end, true).values()) {
                 results.addAll(logs);
             }
         }
@@ -160,35 +172,7 @@ public class IndexingEngine {
      * Called once at startup, before tailing begins.
      */
     public static void loadFromDatabase() {
-        DatabaseEngine.loadRecentLogs(24 * 3, log -> {
-            try {
-                // Existing time/date parsing...
-                java.time.LocalDateTime dateTime = java.time.LocalDateTime.ofInstant(
-                        java.time.Instant.ofEpochSecond(log.getTimestamp()),
-                        java.time.ZoneId.systemDefault()
-                );
-                java.time.LocalDate day = dateTime.toLocalDate();
-                java.time.LocalTime time = dateTime.toLocalTime().withSecond(0).withNano(0);
-
-                // Ensure these are all being populated:
-                TimeIndex.computeIfAbsent(day, k -> new ConcurrentSkipListMap<>())
-                        .computeIfAbsent(time, k -> Collections.synchronizedList(new ArrayList<>()))
-                        .add(log);
-
-                HostIndex.computeIfAbsent(log.getSource(), k -> Collections.synchronizedList(new ArrayList<>()))
-                        .add(log);
-
-                // Add Severity and Category mapping so the GUI sidebar can pull the history
-                SeverityIndex.computeIfAbsent(log.getSeverity().toUpperCase(), k -> Collections.synchronizedList(new ArrayList<>()))
-                        .add(log);
-
-                CategoryIndex.computeIfAbsent(log.getCategory().toUpperCase(), k -> Collections.synchronizedList(new ArrayList<>()))
-                        .add(log);
-
-            } catch (Exception e) {
-                System.err.println("Error restoring log: " + e.getMessage());
-            }
-        });
+        DatabaseEngine.loadRecentLogs(24 * 3, log -> indexLog(log, false));
     }
 
     // helper to show available days
@@ -198,13 +182,14 @@ public class IndexingEngine {
 
     // helper to show available times for a given day
     public static Set<java.time.LocalTime> getAvailableTimes(java.time.LocalDate day) {
-        ConcurrentSkipListMap<java.time.LocalTime, List<LogObject>> byTime = TimeIndex.get(day);
+        ConcurrentSkipListMap<java.time.LocalTime, Set<LogObject>> byTime = TimeIndex.get(day);
         return byTime != null ? byTime.keySet() : Collections.emptySet();
     }
 
     // helper to get logs for a given host
     public static List<LogObject> getLogsForHost(String host) {
-        return HostIndex.getOrDefault(host, Collections.emptyList());
+        if (host == null) return new ArrayList<>();
+        return new ArrayList<>(HostIndex.getOrDefault(host, Collections.emptySet()));
     }
 
     // helper to get available host keys

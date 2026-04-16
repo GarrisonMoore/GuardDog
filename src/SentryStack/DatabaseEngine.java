@@ -12,6 +12,8 @@ public class DatabaseEngine {
     private static final String DB_URL = "jdbc:sqlite:guarddog_logs.db";
     private static Connection connection;
 
+    private static PreparedStatement insertPs;
+
     /**
      * Initialize the database and create the logs table if it doesn't exist.
      */
@@ -40,6 +42,10 @@ public class DatabaseEngine {
                 stmt.execute("CREATE INDEX IF NOT EXISTS idx_logs_time     ON logs(timestamp)");
             }
             connection.commit();
+
+            String sql = "INSERT INTO logs (timestamp, source, severity, category, pid, message) VALUES (?, ?, ?, ?, ?, ?)";
+            insertPs = connection.prepareStatement(sql);
+
             System.out.println("SQLite database initialized: " + DB_URL);
         } catch (SQLException e) {
             System.err.println("Failed to initialize SQLite: " + e.getMessage());
@@ -50,17 +56,16 @@ public class DatabaseEngine {
      * Insert a single LogObject into the database.
      */
     public static synchronized void insertLog(LogObject log) {
-        if (connection == null) return;
+        if (connection == null || insertPs == null) return;
 
-        String sql = "INSERT INTO logs (timestamp, source, severity, category, pid, message) VALUES (?, ?, ?, ?, ?, ?)";
-        try (PreparedStatement ps = connection.prepareStatement(sql)) {
-            ps.setLong(1, log.getTimestamp());
-            ps.setString(2, log.getSource());
-            ps.setString(3, log.getSeverity());
-            ps.setString(4, log.getCategory());
-            ps.setString(5, log.getPid());
-            ps.setString(6, log.getMessage());
-            ps.executeUpdate();
+        try {
+            insertPs.setLong(1, log.getTimestamp());
+            insertPs.setString(2, log.getSource());
+            insertPs.setString(3, log.getSeverity());
+            insertPs.setString(4, log.getCategory());
+            insertPs.setString(5, log.getPid());
+            insertPs.setString(6, log.getMessage());
+            insertPs.addBatch();
         } catch (SQLException e) {
             System.err.println("Failed to insert log: " + e.getMessage());
         }
@@ -70,8 +75,9 @@ public class DatabaseEngine {
      * Call periodically (or after a batch of inserts) to flush to disk.
      */
     public static synchronized void commit() {
-        if (connection == null) return;
+        if (connection == null || insertPs == null) return;
         try {
+            insertPs.executeBatch();
             connection.commit();
         } catch (SQLException e) {
             System.err.println("Failed to commit: " + e.getMessage());
@@ -84,7 +90,8 @@ public class DatabaseEngine {
     public static void close() {
         if (connection == null) return;
         try {
-            connection.commit();
+            commit();
+            if (insertPs != null) insertPs.close();
             connection.close();
             System.out.println("SQLite connection closed.");
         } catch (SQLException e) {

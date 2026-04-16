@@ -27,9 +27,6 @@ public class Main extends IndexingEngine {
 
         Runtime.getRuntime().addShutdownHook(new Thread(DatabaseEngine::close));
 
-        // Restore previously saved logs into memory so the GUI can display them
-        IndexingEngine.loadFromDatabase();
-
         // Using FlatDarkLaf for a modern look
         FlatDarkLaf.setup();
 

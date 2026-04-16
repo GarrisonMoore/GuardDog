@@ -187,9 +187,9 @@ public class GUI extends JFrame {
             if (sidebar.isTimesMode()) {
                 LocalDate day = sidebar.getSelectedDay();
                 LocalTime time = LocalTime.parse(selectedKey.length() == 5 ? selectedKey + ":00" : selectedKey);
-                logsToDisplay = IndexingEngine.TimeIndex
+                logsToDisplay = new ArrayList<>(IndexingEngine.TimeIndex
                         .getOrDefault(day, new java.util.concurrent.ConcurrentSkipListMap<>())
-                        .getOrDefault(time.withSecond(0).withNano(0), new java.util.concurrent.CopyOnWriteArrayList<>());
+                        .getOrDefault(time.withSecond(0).withNano(0), java.util.Collections.emptySet()));
             } else {
                 LocalDate day = LocalDate.parse(selectedKey);
                 logsToDisplay = IndexingEngine.getLogsByDay(day);
@@ -211,7 +211,7 @@ public class GUI extends JFrame {
                 LocalTime time = LocalTime.parse(key.length() == 5 ? key + ":00" : key);
                 return IndexingEngine.TimeIndex
                         .getOrDefault(day, new java.util.concurrent.ConcurrentSkipListMap<>())
-                        .getOrDefault(time.withSecond(0).withNano(0), new java.util.concurrent.CopyOnWriteArrayList<>()).size();
+                        .getOrDefault(time.withSecond(0).withNano(0), java.util.Collections.emptySet()).size();
             } else {
                 return IndexingEngine.getLogsByDay(LocalDate.parse(key)).size();
             }

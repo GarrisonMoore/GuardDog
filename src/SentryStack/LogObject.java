@@ -50,6 +50,24 @@ public class LogObject {
         return category;
     }
 
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        LogObject logObject = (LogObject) o;
+        return timestamp == logObject.timestamp &&
+                java.util.Objects.equals(source, logObject.source) &&
+                java.util.Objects.equals(severity, logObject.severity) &&
+                java.util.Objects.equals(category, logObject.category) &&
+                java.util.Objects.equals(pid, logObject.pid) &&
+                java.util.Objects.equals(message, logObject.message);
+    }
+
+    @Override
+    public int hashCode() {
+        return java.util.Objects.hash(timestamp, source, severity, category, pid, message);
+    }
+
     public String toString() {
 
         java.time.LocalDateTime date = java.time.LocalDateTime.ofInstant(
