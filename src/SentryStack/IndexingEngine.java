@@ -170,9 +170,10 @@ public class IndexingEngine {
     /**
      * Load previously persisted logs from SQLite into the in-memory indexes.
      * Called once at startup, before tailing begins.
+     * Defaulting to 1 year of logs to ensure older records are available for browsing.
      */
-    public static void loadFromDatabase() {
-        DatabaseEngine.loadRecentLogs(24 * 3, log -> indexLog(log, false));
+    public static void loadFromDatabase(java.util.function.BiConsumer<Integer, Integer> progressCallback) {
+        DatabaseEngine.loadRecentLogs(24 * 365, log -> indexLog(log, false), progressCallback);
     }
 
     // helper to show available days

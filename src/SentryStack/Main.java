@@ -1,6 +1,7 @@
 package SentryStack;
 
 import GUI.GUI;
+import GUI.SplashScreen;
 import com.formdev.flatlaf.FlatDarkLaf;
 
 import javax.swing.*;
@@ -12,26 +13,13 @@ import java.nio.file.Paths;
 // adding comment for FORCE PUSH GITHUB PLEASE BROOOOOOOOOOO
 public class Main extends IndexingEngine {
 
-    //private static final Path LOG_FILE = Paths.get("src/test.log");
-    //private static final Path LOG_FILE = Paths.get("/var/log/windows_5141.log");
-
     public static void main(String[] args) throws InterruptedException {
 
         System.out.println("DEBUG: Guard Dog NOC Bridge - Optimization Branch Active");
         System.out.println("DEBUG: Loading database history...");
 
-        DatabaseEngine.initialize();
-
-        // Restore previously saved logs into memory so the GUI can display them
-        IndexingEngine.loadFromDatabase();
-
-        Runtime.getRuntime().addShutdownHook(new Thread(DatabaseEngine::close));
-
         // Using FlatDarkLaf for a modern look
         FlatDarkLaf.setup();
-
-        //ReadmeGUI readmeGUI = new ReadmeGUI();
-        //readmeGUI.getGUI();
 
         // Global UI tweaks for a modern, cleaner look
         UIManager.put("Component.arc", 12);
@@ -63,6 +51,29 @@ public class Main extends IndexingEngine {
         UIManager.put("ComboBox.background", new Color(35, 35, 35));
         UIManager.put("TextField.background", new Color(35, 35, 35));
 
+        SplashScreen splash = new SplashScreen();
+        splash.setVisible(true);
+        splash.setIndeterminate(true);
+
+        // Database initialization
+        splash.setStatus("Connecting to database...");
+        DatabaseEngine.initialize();
+
+        // Restore previously saved logs into memory so the GUI can display them
+        splash.setStatus("Loading recent logs...");
+        IndexingEngine.loadFromDatabase((count, total) -> {
+            splash.setMax(total);
+            splash.setProgress(count);
+            splash.setStatus("Loading logs: " + count + " / " + total);
+        });
+
+        System.out.println("DEBUG: Loaded " + IndexingEngine.getHostKeys().size() + " hosts and " + IndexingEngine.getAvailableDays().size() + " days from DB.");
+
+        splash.setStatus("Finalizing startup...");
+        splash.dispose();
+
+        Runtime.getRuntime().addShutdownHook(new Thread(DatabaseEngine::close));
+
         SwingUtilities.invokeLater(() -> {
             new GUI();
         });
@@ -90,19 +101,20 @@ public class Main extends IndexingEngine {
             if (result == JFileChooser.APPROVE_OPTION) {
                 selectedLogFile = fileChooser.getSelectedFile().toPath();
             } else {
-                // User hit cancel or closed the window
-                JOptionPane.showMessageDialog(null, "No log file selected. Guard Dog is exiting.", "Error", JOptionPane.ERROR_MESSAGE);
-                System.exit(0);
+                // User hit cancel or closed the window - allow them to browse existing database logs
+                System.out.println("DEBUG: No log file selected. Entering browse mode for existing database logs.");
             }
         }
 
         // We need an effectively final variable for the lambda expression inside the Thread
         final Path finalLogFile = selectedLogFile;
 
-        // Start indexing the log file in a separate thread using the selected file
-        Thread logThread = new Thread(() -> tailFile(finalLogFile), "log-tail");
-        logThread.setDaemon(true);
-        logThread.start();
+        // Start indexing the log file in a separate thread if a file was selected
+        if (finalLogFile != null) {
+            Thread logThread = new Thread(() -> tailFile(finalLogFile), "log-tail");
+            logThread.setDaemon(true);
+            logThread.start();
+        }
 
         scheduleGuiRefresh();
     }

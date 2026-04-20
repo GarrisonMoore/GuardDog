@@ -36,7 +36,7 @@ public class SidebarPanel extends JPanel {
         initComponents();
         setupListeners();
         layoutComponents();
-        loadDays();
+        onPivotChanged((String) pivotBox.getSelectedItem());
     }
 
     private void initComponents() {
@@ -297,11 +297,7 @@ public class SidebarPanel extends JPanel {
         if (h.matches("^(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)(\\.(25[0-5]|2[0-4]\\d|[01]?\\d?\\d)){3}$")) return true; // IPv4
         if (h.matches("^[0-9A-Fa-f:]{2,}$") && h.contains(":")) return true; // IPv6
         if (h.matches("^[A-Za-z0-9-]+(\\.[A-Za-z0-9-]+)+$")) return true; // FQDN
-        if (h.matches("^[A-Za-z0-9-]{3,63}$")) {
-            boolean hasDigit = h.matches(".*[0-9].*");
-            boolean hasDash = h.contains("-");
-            return hasDigit || hasDash; // NetBIOS-like
-        }
+        if (h.matches("^[A-Za-z0-9-]{3,63}$")) return true; // Allow simple alphanumeric machine names (at least 3 chars)
         return false;
     }
 }

@@ -154,6 +154,7 @@ public class GUI extends JFrame {
     }
 
     public void refreshDisplay() {
+        if (sidebar == null) return; // Prevent NPE during constructor
         String selectedKey = sidebar.getSelectedKey();
         String currentPivot = sidebar.getSelectedPivot();
 

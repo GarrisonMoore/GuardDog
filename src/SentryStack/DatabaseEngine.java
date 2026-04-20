@@ -9,7 +9,7 @@ import java.util.List;
  */
 public class DatabaseEngine {
 
-    private static final String DB_URL = "jdbc:sqlite:guarddog_logs.db";
+    private static final String DB_URL = "jdbc:sqlite:/home/admin/guarddog_logs.db";
     private static Connection connection;
 
     private static PreparedStatement insertPs;
@@ -100,12 +100,25 @@ public class DatabaseEngine {
     }
 
     /**
-     * Load recent logs from the database (last N hours) using a stream.
+     * Load recent logs from the database (last N days/hours) using a stream.
      */
-    public static void loadRecentLogs(int hoursBack, java.util.function.Consumer<LogObject> processor) {
+    public static void loadRecentLogs(int hoursBack, java.util.function.Consumer<LogObject> processor, java.util.function.BiConsumer<Integer, Integer> progressCallback) {
         if (connection == null) return;
 
         long cutoff = java.time.Instant.now().minus(hoursBack, java.time.temporal.ChronoUnit.HOURS).getEpochSecond();
+
+        String countSql = "SELECT COUNT(*) FROM logs WHERE timestamp >= ?";
+        int total = 0;
+        try (PreparedStatement psCount = connection.prepareStatement(countSql)) {
+            psCount.setLong(1, cutoff);
+            try (ResultSet rsCount = psCount.executeQuery()) {
+                if (rsCount.next()) {
+                    total = rsCount.getInt(1);
+                }
+            }
+        } catch (SQLException e) {
+            System.err.println("Failed to count logs: " + e.getMessage());
+        }
 
         String sql = "SELECT timestamp, source, severity, category, pid, message FROM logs WHERE timestamp >= ? ORDER BY timestamp";
         int count = 0;
@@ -125,7 +138,13 @@ public class DatabaseEngine {
                     // Pass the log directly to the IndexingEngine one at a time
                     processor.accept(log);
                     count++;
+                    if (progressCallback != null && count % 100 == 0) {
+                        progressCallback.accept(count, total);
+                    }
                 }
+            }
+            if (progressCallback != null) {
+                progressCallback.accept(count, total);
             }
         } catch (SQLException e) {
             System.err.println("Failed to load logs from SQLite: " + e.getMessage());
