@@ -111,8 +111,7 @@ public class SelectedLogsPanel extends JPanel {
         table.setBackground(GUIConstants.LOG_BG);
         table.setForeground(Color.WHITE);
         table.setGridColor(GUIConstants.BORDER_COLOR);
-        table.getTableHeader().setBackground(GUIConstants.PANEL_BG);
-        table.getTableHeader().setForeground(Color.WHITE);
+        table.getTableHeader().setBackground(GUIConstants.PANEL_BG);table.getTableHeader().setForeground(Color.WHITE);
         table.setSelectionBackground(new Color(30, 80, 150));
         table.setSelectionForeground(Color.WHITE);
         table.setFont(GUIConstants.MAIN_FONT);

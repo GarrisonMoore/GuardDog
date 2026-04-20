@@ -50,8 +50,6 @@ public class SyslogParser implements ParserMaster {
             return null;
         }
 
-
-
         long epochTime = 0;
         String host = "";
         String pid = "";

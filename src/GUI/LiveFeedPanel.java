@@ -203,32 +203,6 @@ public class LiveFeedPanel extends JPanel {
         liveTableModel.fireTableDataChanged();
     }
 
-    private void addLogRowToTable(LogObject log) {
-        // 1. Add the new data to your internal list instead of the model
-        currentTableData.add(new Object[]{
-                formatTimestamp(log),
-                log.getSource(),
-                log.getSeverity(),
-                log.getCategory(),
-                log.getPid(),
-                log.getMessage()
-        });
-
-        // 2. Enforce the 500-row limit on the list itself
-        if (currentTableData.size() > 500) {
-            currentTableData.remove(0);
-        }
-
-        // 3. Notify the AbstractTableModel that it needs to refresh the view
-        liveTableModel.fireTableDataChanged();
-
-        // 4. Perform the auto-scroll
-        int lastRow = currentTableData.size() - 1;
-        if (lastRow >= 0) {
-            liveLogTable.scrollRectToVisible(liveLogTable.getCellRect(lastRow, 0, true));
-        }
-    }
-
     /**
      * Formats the timestamp of a log object for display.
      * @param log The log object.
