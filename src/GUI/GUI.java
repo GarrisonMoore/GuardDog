@@ -1,7 +1,7 @@
 package GUI;
 
-import SentryStack.IndexingEngine;
-import SentryStack.LogObject;
+import Engine.IndexingEngine;
+import Engine.LogObject;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;
@@ -12,7 +12,6 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
-import java.util.Collections;
 
 /**
  * The main GUI window for the Guard Dog NOC Bridge application.

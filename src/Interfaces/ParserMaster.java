@@ -1,6 +1,6 @@
 package Interfaces;
 
-import SentryStack.LogObject;
+import Engine.LogObject;
 
 /**
  * Interfaces.LogParser is an interface that defines the contract for parsing log entries.

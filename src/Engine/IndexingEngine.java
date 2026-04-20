@@ -1,15 +1,5 @@
-package SentryStack;
+package Engine;
 
-import GUI.GUI;
-import Interfaces.ParserMaster;
-import Parsers.BSD.BSDparser;
-import Parsers.Heuristic.HeuristicParser;
-import Parsers.JSON.JSONParser;
-import Parsers.Syslog.SyslogParser;
-
-import java.io.RandomAccessFile;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentSkipListMap;

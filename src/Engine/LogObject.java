@@ -1,4 +1,4 @@
-package SentryStack;
+package Engine;
 
 /**
  * LogObject represents a single structured log entry.

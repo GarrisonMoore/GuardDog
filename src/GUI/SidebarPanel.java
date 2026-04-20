@@ -1,6 +1,6 @@
 package GUI;
 
-import SentryStack.IndexingEngine;
+import Engine.IndexingEngine;
 
 import javax.swing.*;
 import javax.swing.event.DocumentEvent;

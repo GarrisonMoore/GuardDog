@@ -1,6 +1,6 @@
 package Interfaces;
 
-import SentryStack.LogObject;
+import Engine.LogObject;
 
 /**
  * CategorizationMaster provides logic to classify log entries into various categories

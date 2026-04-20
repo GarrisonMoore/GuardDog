@@ -1,7 +1,7 @@
 package Parsers.BSD;
 
 import Interfaces.CategorizationMaster;
-import SentryStack.LogObject;
+import Engine.LogObject;
 import Interfaces.ParserMaster;
 import Interfaces.ParseStatus;
 

@@ -25,7 +25,7 @@ formats—syslog, JSON, BSD, and unstructured plain text. Manual configuration
 of regex patterns for every new log source creates a "Latency Gap" in incident
 response.
 
-The SentryStack (Guard Dog) is engineered to bridge this gap. It serves as
+The Engine (Guard Dog) is engineered to bridge this gap. It serves as
 a high-performance, agnostic ingestion engine that utilizes a chain-of-responsibility
 multi-parser architecture to normalize raw data streams into a unified, searchable
 Network Operations Center (NOC) dashboard.
@@ -54,7 +54,7 @@ IV. ARCHITECTURAL TIER BREAKDOWN
       monitors file growth and processes new entries in real-time.
 
 2. THE "MULTI-PARSER" PIPELINE
-   SentryStack utilizes an intelligent, layered parsing hierarchy (ParserMaster.java)
+   Engine utilizes an intelligent, layered parsing hierarchy (ParserMaster.java)
    to ensure zero-drop telemetry:
 
     - SYSLOG LAYER  : SyslogParser.java (RFC 5424) for modern structured logs.
@@ -107,7 +107,7 @@ VII. PROJECT METRICS (CODEBASE)
 | PACKAGE         | CLASSES | TOTAL LINES | TOTAL CHARS |
 |-----------------|:-------:|:-----------:|:-----------:|
 | GUI             |    7    |    1,313    |    50,744   |
-| SentryStack     |    7    |      890    |    34,320   |
+| Engine     |    7    |      890    |    34,320   |
 | Parsers         |    4    |      553    |    22,878   |
 | Interfaces      |    4    |      193    |    10,293   |
 --------------------------------------------------------------------------------

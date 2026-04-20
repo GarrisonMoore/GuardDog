@@ -13,7 +13,7 @@ Here is a detailed breakdown of the lines of code and character counts for the *
 | Package | Classes | Total Lines | Total Characters |
 | :--- | :---: | :---: | :---: |
 | `GUI` | 7 | 1,313 | 50,744 |
-| `SentryStack` | 7 | 890 | 34,320 |
+| `Engine` | 7 | 890 | 34,320 |
 | `Parsers` | 4 | 553 | 22,878 |
 | `Interfaces` | 4 | 193 | 10,293 |
 | **Total** | **22** | **3,149** | **118,235** |
@@ -33,7 +33,7 @@ Here is a detailed breakdown of the lines of code and character counts for the *
 | `LogSeverityRenderer.java` | 39 | 1,478 |
 | `GUIConstants.java` | 34 | 1,436 |
 
-**Core Logic (`src/SentryStack`)**
+**Core Logic (`src/Engine`)**
 | Class | Lines | Characters |
 | :--- | :---: | :---: |
 | `IndexingEngine.java` | 192 | 7,569 |

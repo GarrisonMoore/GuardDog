@@ -1,9 +1,8 @@
 package GUI;
 
-import SentryStack.LogObject;
+import Engine.LogObject;
 
 import javax.swing.*;
-import javax.swing.table.DefaultTableModel;
 import java.awt.*;
 import java.util.ArrayDeque;
 import java.util.Deque;

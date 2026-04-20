@@ -1,4 +1,4 @@
-package SentryStack;
+package Engine;
 
 /**
  * JSONobject is a simple data structure used for parsing incoming JSON logs.

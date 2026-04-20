@@ -1,7 +1,6 @@
-package SentryStack;
+package Engine;
 
 import java.sql.*;
-import java.util.List;
 
 /**
  * SQLite persistence layer for Guard Dog logs.

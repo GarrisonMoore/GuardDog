@@ -2,7 +2,7 @@ package Parsers.JSON;
 
 import Interfaces.CategorizationMaster;
 import Interfaces.ParserMaster;
-import SentryStack.LogObject;
+import Engine.LogObject;
 import Interfaces.ParseStatus;
 
 

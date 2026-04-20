@@ -1,4 +1,4 @@
-package SentryStack;
+package Engine;
 
 import GUI.GUI;
 import GUI.SplashScreen;
