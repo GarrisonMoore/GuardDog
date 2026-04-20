@@ -1,4 +1,4 @@
-# PROJECT: THE "GUARD DOG" SEIM
+# PROJECT: THE "GUARD DOG" SIEM
 ### Primary Architect : Garrison
 ### Build Environment : OpenJDK 21 / FlatLaf / SQLite 3 / GSON
 ### System Status     : Operational - Version 1.0.1
@@ -20,15 +20,10 @@ java -jar GuardDogProcessor.jar /path/to/log.file
 
 II. OPERATIONAL MISSION
 -----------------------
-In modern network environments, telemetry arrives in a chaotic variety of
-formats—syslog, JSON, BSD, and unstructured plain text. Manual configuration
-of regex patterns for every new log source creates a "Latency Gap" in incident
-response.
 
-The Engine (Guard Dog) is engineered to bridge this gap. It serves as
-a high-performance, agnostic ingestion engine that utilizes a chain-of-responsibility
-multi-parser architecture to normalize raw data streams into a unified, searchable
-Network Operations Center (NOC) dashboard.
+Network administrators typically have to tape together multiple different log aggregation tools to monitor their environments, ultimately suffering from a "Legacy Bottleneck" where high-volume telemetry causes GUI saturation and stalls incident response.
+
+Guard Dog is built to replace that fragmented workflow with an all-in-one solution. It serves as a high-performance, agnostic ingestion engine that utilizes a chain-of-responsibility multi-parser architecture to normalize raw data streams. The result is a unified, highly responsive Network Operations Center (NOC) dashboard that brings every log into one searchable interface without the lag.
 
 
 III. SYSTEM SPECIFICATIONS
