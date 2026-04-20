@@ -165,6 +165,9 @@ public class SidebarPanel extends JPanel {
         add(listContainer, BorderLayout.CENTER);
     }
 
+    /**
+     * Updates the sidebar filter based on the current search text.
+     */
     public void applySidebarFilter() {
         String query = getSearchText().toLowerCase();
         String currentPivot = getSelectedPivot();
@@ -215,6 +218,10 @@ public class SidebarPanel extends JPanel {
         }
     }
 
+    /**
+     * Handles changes to the selected pivot category.
+     * @param selected The name of the selected pivot.
+     */
     public void onPivotChanged(String selected) {
         listModel.clear();
         selectedDay = null;
@@ -236,6 +243,9 @@ public class SidebarPanel extends JPanel {
         parent.refreshDisplay();
     }
 
+    /**
+     * Loads available days from the indexing engine into the selection list.
+     */
     public void loadDays() {
         browseMode = BrowseMode.DAYS;
         listModel.clear();
@@ -244,6 +254,10 @@ public class SidebarPanel extends JPanel {
         }
     }
 
+    /**
+     * Loads available times for a specific day into the selection list.
+     * @param day The selected date.
+     */
     public void loadTimesForDay(LocalDate day) {
         browseMode = BrowseMode.TIMES;
         selectedDay = day;
@@ -258,6 +272,10 @@ public class SidebarPanel extends JPanel {
         pivotBox.addActionListener(listener);
     }
 
+    /**
+     * Returns the selected pivot name.
+     * @return The pivot name.
+     */
     public String getSelectedPivot() {
         return (String) pivotBox.getSelectedItem();
     }
@@ -271,6 +289,10 @@ public class SidebarPanel extends JPanel {
     }
 
 
+    /**
+     * Returns the currently selected key (e.g., host name, category).
+     * @return The selection key.
+     */
     public String getSelectedKey() {
         return hostList.getSelectedValue();
     }
@@ -279,14 +301,25 @@ public class SidebarPanel extends JPanel {
         return (String) pivotBox.getSelectedItem();
     }
 
+    /**
+     * Returns the selected date if in Time pivot mode.
+     * @return The selected LocalDate.
+     */
     public LocalDate getSelectedDay() {
         return selectedDay;
     }
 
+    /**
+     * Returns whether the sidebar is currently in "Time" browsing mode.
+     * @return True if in time mode.
+     */
     public boolean isTimesMode() {
         return browseMode == BrowseMode.TIMES;
     }
 
+    /**
+     * Clears the current selection in the list.
+     */
     public void clearSelection() {
         hostList.clearSelection();
     }

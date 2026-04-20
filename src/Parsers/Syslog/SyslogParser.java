@@ -25,6 +25,11 @@ public class SyslogParser implements ParserMaster {
         return RFC5424_PATTERN.matcher(rawline).matches();
     }
 
+    /**
+     * Attempts to parse a raw log line in RFC 5424 format.
+     * @param rawline The raw log line.
+     * @return A {@link LogObject} if parsing is successful, null otherwise.
+     */
     @Override
     public LogObject parse(String rawline) {
 

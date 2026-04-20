@@ -31,6 +31,11 @@ public class BSDparser implements ParserMaster {
         return BSD_PATTERN.matcher(rawline).matches();
     }
 
+    /**
+     * Attempts to parse a raw log line in BSD format.
+     * @param rawline The raw log line.
+     * @return A {@link LogObject} if parsing is successful, null otherwise.
+     */
     @Override
     public LogObject parse(String rawline) {
 

@@ -11,6 +11,15 @@ public class LogObject {
     private final String pid;
     private final String message;
 
+    /**
+     * Constructs a new LogObject with the specified details.
+     * @param timestamp Epoch timestamp of the log entry.
+     * @param source Source/host of the log entry.
+     * @param severity Severity level (e.g., INFO, WARN, CRIT).
+     * @param category Log category (e.g., SECURITY, NETWORK).
+     * @param pid Process ID associated with the log entry.
+     * @param message The log message content.
+     */
     public LogObject(long timestamp, String source, String severity, String category, String pid, String message) {
         this.timestamp = timestamp;
         this.source = source;
@@ -21,26 +30,50 @@ public class LogObject {
     }
 
     // Helpers below
+    /**
+     * Returns the epoch timestamp of the log entry.
+     * @return The timestamp.
+     */
     public long getTimestamp() {
         return timestamp;
     }
 
+    /**
+     * Returns the source/host of the log entry.
+     * @return The source.
+     */
     public String getSource() {
         return source;
     }
 
+    /**
+     * Returns the category of the log entry.
+     * @return The category.
+     */
     public String getCategory() {
         return category;
     }
 
+    /**
+     * Returns the process ID associated with the log entry.
+     * @return The PID.
+     */
     public String getPid() {
         return pid;
     }
 
+    /**
+     * Returns the log message content.
+     * @return The message.
+     */
     public String getMessage() {
         return message;
     }
 
+    /**
+     * Returns the severity level of the log entry.
+     * @return The severity.
+     */
     public String getSeverity() {
         return severity;
     }

@@ -33,6 +33,9 @@ public class GUI extends JFrame {
     private String lastSelectedPivot = null;
     private int lastRenderedCount = -1;
 
+    /**
+     * Constructs the main GUI frame and initializes its components.
+     */
     public GUI() {
         setTitle("Guard Dog Processor - Log Management Console");
         setSize(1600, 800);
@@ -113,10 +116,16 @@ public class GUI extends JFrame {
         myGui = this;
     }
 
+    /**
+     * Initializes the UI components.
+     */
     private void initComponents() {
         // Additional component setup if needed
     }
 
+    /**
+     * Sets up event listeners for UI components.
+     */
     private void setupListeners() {
         sidebar.addSearchDocumentListener(new DocumentListener() {
             public void insertUpdate(DocumentEvent e) {
@@ -139,24 +148,43 @@ public class GUI extends JFrame {
         });
     }
 
+    /**
+     * Updates the UI to reflect whether the live feed is paused.
+     * @param paused True if the live feed is paused.
+     */
     public void setLiveFeedPaused(boolean paused) {
         pauseLiveFeedButton.setText(paused ? "RESUME LIVE FEED" : "PAUSE LIVE FEED");
         pauseLiveFeedButton.setBackground(paused ? GUIConstants.CRIT_COLOR : GUIConstants.SUCCESS_COLOR);
         pauseLiveFeedButton.setForeground(Color.WHITE);
     }
 
+    /**
+     * Returns the singleton instance of the GUI.
+     * @return The GUI instance.
+     */
     public static GUI getMyGui() {
         return myGui;
     }
 
+    /**
+     * Returns the sidebar panel.
+     * @return The SidebarPanel instance.
+     */
     public SidebarPanel getSidebar() {
         return sidebar;
     }
 
+    /**
+     * Updates the list of hosts in the UI.
+     * @param hosts A set of hostnames.
+     */
     public void setHosts(Set<String> hosts) {
         // Optional: logic to update sidebar hosts if needed, though IndexingEngine is used directly
     }
 
+    /**
+     * Refreshes the log display based on the current sidebar selection.
+     */
     public void refreshDisplay() {
         if (sidebar == null) return; // Prevent NPE during constructor
         String selectedKey = sidebar.getSelectedKey();
@@ -208,6 +236,12 @@ public class GUI extends JFrame {
         selectedLogsPanel.renderLogs(logsToDisplay);
     }
 
+    /**
+     * Calculates the number of logs for a given selection key and pivot.
+     * @param key The selection key (e.g., hostname).
+     * @param pivot The pivot category.
+     * @return The count of matching logs.
+     */
     private int getCountForSelection(String key, String pivot) {
         if (key == null) return 0;
         if ("Hostnames".equals(pivot)) return IndexingEngine.getLogsForHost(key).size();
@@ -227,10 +261,17 @@ public class GUI extends JFrame {
         return -1;
     }
 
+    /**
+     * Refreshes the live feed display.
+     */
     public void refreshLiveFeed() {
         liveFeedPanel.refreshDisplay();
     }
 
+    /**
+     * Appends a new log to the live feed.
+     * @param log The log object to append.
+     */
     public void appendLiveLog(LogObject log) {
         liveFeedPanel.appendLiveLog(log);
 
@@ -238,6 +279,10 @@ public class GUI extends JFrame {
         // REMOVED: The logic checking shouldRefresh and forcing a display refresh per log
     }
 
+    /**
+     * Returns the selected logs panel.
+     * @return The SelectedLogsPanel instance.
+     */
     public SelectedLogsPanel getSelectedLogsPanel() {
         return selectedLogsPanel;
     }

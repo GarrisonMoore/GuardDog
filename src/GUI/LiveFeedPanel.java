@@ -86,6 +86,10 @@ public class LiveFeedPanel extends JPanel {
         liveLogTable.getColumnModel().getColumn(5).setPreferredWidth(600);
     }
 
+    /**
+     * Appends a new log to the live feed buffer or directly to the display if not paused.
+     * @param log The log object.
+     */
     public void appendLiveLog(LogObject log) {
         // Just add to our data structures instantly. No UI blocking!
         allLiveLogs.add(log);
@@ -95,6 +99,9 @@ public class LiveFeedPanel extends JPanel {
         pendingLogs.add(log);
     }
 
+    /**
+     * Periodically processes pending logs from the buffer to the display.
+     */
     private void processPendingLogs() {
         if (pendingLogs.isEmpty()) return;
 
@@ -152,6 +159,9 @@ public class LiveFeedPanel extends JPanel {
     }
 
     // 3. Update refreshDisplay with the Short-Circuit and Batch Update
+    /**
+     * Refreshes the live feed display based on the current search filter.
+     */
     public void refreshDisplay() {
         if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeLater(this::refreshDisplay);
@@ -220,6 +230,11 @@ public class LiveFeedPanel extends JPanel {
         }
     }
 
+    /**
+     * Formats the timestamp of a log object for display.
+     * @param log The log object.
+     * @return A formatted timestamp string.
+     */
     private String formatTimestamp(LogObject log) {
         return java.time.LocalDateTime.ofInstant(
                 java.time.Instant.ofEpochSecond(log.getTimestamp()),
@@ -227,6 +242,10 @@ public class LiveFeedPanel extends JPanel {
         ).format(DATE_FORMATTER);
     }
 
+    /**
+     * Sets whether the live feed is paused.
+     * @param paused True to pause the live feed.
+     */
     public void setPaused(boolean paused) {
         if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeLater(() -> setPaused(paused));
@@ -239,6 +258,10 @@ public class LiveFeedPanel extends JPanel {
         }
     }
 
+    /**
+     * Returns whether the live feed is currently paused.
+     * @return True if paused.
+     */
     public boolean isPaused() {
         return paused;
     }
@@ -277,6 +300,10 @@ public class LiveFeedPanel extends JPanel {
         }
     }
 
+    /**
+     * Returns the scroll pane containing the live feed table.
+     * @return The JComponent instance.
+     */
     public JComponent getScroll() {
         return liveTableScroll;
     }

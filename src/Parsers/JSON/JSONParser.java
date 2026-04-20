@@ -39,6 +39,11 @@ public class JSONParser implements ParserMaster {
         return candidate.contains("\":");
     }
 
+    /**
+     * Attempts to parse a raw log line in JSON format.
+     * @param rawline The raw log line.
+     * @return A {@link LogObject} if parsing is successful, null otherwise.
+     */
     @Override
     public LogObject parse(String rawline) {
         try {

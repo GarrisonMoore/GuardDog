@@ -112,6 +112,10 @@ public class SelectedLogsPanel extends JPanel {
         table.getColumnModel().getColumn(5).setPreferredWidth(600);
     }
 
+    /**
+     * Updates the data in the table with a new list of logs.
+     * @param logs The list of logs to display.
+     */
     public void renderLogs(List<LogObject> logs) {
         if (!SwingUtilities.isEventDispatchThread()) {
             SwingUtilities.invokeLater(() -> renderLogs(logs));
@@ -167,11 +171,19 @@ public class SelectedLogsPanel extends JPanel {
         selectedLogTable.getColumnModel().getColumn(5).setPreferredWidth(600);
     }
 
+    /**
+     * Formats the timestamp of a log object for display.
+     * @param log The log object.
+     * @return A formatted timestamp string.
+     */
     private String formatTimestamp(LogObject log) {
         return LocalDateTime.ofInstant(Instant.ofEpochSecond(log.getTimestamp()), ZoneId.systemDefault())
                 .format(DATE_FORMATTER);
     }
 
+    /**
+     * Clears the current table data and resets tracking state.
+     */
     public void clearMemory() {
         // Reset the short-circuit trackers so the UI doesn't ignore the next load
         lastLogCount = -1;
@@ -181,6 +193,10 @@ public class SelectedLogsPanel extends JPanel {
         logTableModel.setRowCount(0);
     }
 
+    /**
+     * Returns the JTable used to display the logs.
+     * @return The JTable instance.
+     */
     public JTable getSelectedLogTable() {
         return selectedLogTable;
     }
@@ -189,6 +205,10 @@ public class SelectedLogsPanel extends JPanel {
         return logSearchField;
     }
 
+    /**
+     * Returns the scroll pane containing the table.
+     * @return The JScrollPane instance.
+     */
     public JScrollPane getScroll() {
         return selectedScroll;
     }

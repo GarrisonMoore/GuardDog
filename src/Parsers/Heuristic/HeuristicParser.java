@@ -34,6 +34,11 @@ public class HeuristicParser implements ParserMaster {
         return true;
     }
 
+    /**
+     * Attempts to parse a raw log line using heuristic matching.
+     * @param rawline The raw log line.
+     * @return A {@link LogObject} if parsing is successful, null otherwise.
+     */
     @Override
     public LogObject parse(String rawline) {
 

@@ -1,7 +1,6 @@
 package SentryStack;
 
 import GUI.GUI;
-import GUI.SplashScreen;
 import com.formdev.flatlaf.FlatDarkLaf;
 
 import javax.swing.*;
@@ -10,9 +9,18 @@ import java.io.File;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 
-// adding comment for FORCE PUSH GITHUB PLEASE BROOOOOOOOOOO
-public class Main extends IndexingEngine {
+/**
+ * Main entry point for the Guard Dog NOC Bridge application.
+ * This class initializes the database, configures the UI look-and-feel,
+ * and starts the log indexing process.
+ */
+public class Main {
 
+    /**
+     * Entry point for the application.
+     * @param args Command line arguments.
+     * @throws InterruptedException If initialization is interrupted.
+     */
     public static void main(String[] args) throws InterruptedException {
 
         System.out.println("DEBUG: Guard Dog NOC Bridge - Optimization Branch Active");
@@ -51,26 +59,26 @@ public class Main extends IndexingEngine {
         UIManager.put("ComboBox.background", new Color(35, 35, 35));
         UIManager.put("TextField.background", new Color(35, 35, 35));
 
-        SplashScreen splash = new SplashScreen();
-        splash.setVisible(true);
-        splash.setIndeterminate(true);
+//        SplashScreen splash = new SplashScreen();
+//        splash.setVisible(true);
+//        splash.setIndeterminate(true);
 
         // Database initialization
-        splash.setStatus("Connecting to database...");
+//        splash.setStatus("Connecting to database...");
         DatabaseEngine.initialize();
 
         // Restore previously saved logs into memory so the GUI can display them
-        splash.setStatus("Loading recent logs...");
+//        splash.setStatus("Loading recent logs...");
         IndexingEngine.loadFromDatabase((count, total) -> {
-            splash.setMax(total);
-            splash.setProgress(count);
-            splash.setStatus("Loading logs: " + count + " / " + total);
+//            splash.setMax(total);
+//            splash.setProgress(count);
+//            splash.setStatus("Loading logs: " + count + " / " + total);
         });
 
         System.out.println("DEBUG: Loaded " + IndexingEngine.getHostKeys().size() + " hosts and " + IndexingEngine.getAvailableDays().size() + " days from DB.");
 
-        splash.setStatus("Finalizing startup...");
-        splash.dispose();
+//        splash.setStatus("Finalizing startup...");
+//        splash.dispose();
 
         Runtime.getRuntime().addShutdownHook(new Thread(DatabaseEngine::close));
 
@@ -111,7 +119,7 @@ public class Main extends IndexingEngine {
 
         // Start indexing the log file in a separate thread if a file was selected
         if (finalLogFile != null) {
-            Thread logThread = new Thread(() -> tailFile(finalLogFile), "log-tail");
+            Thread logThread = new Thread(() -> LogTailer.tailFile(finalLogFile), "log-tail");
             logThread.setDaemon(true);
             logThread.start();
         }
@@ -119,7 +127,9 @@ public class Main extends IndexingEngine {
         scheduleGuiRefresh();
     }
 
-    // Schedule a GUI.GUI refresh every 500ms
+    /**
+     * Schedules a periodic refresh of the GUI and background database tasks.
+     */
     private static void scheduleGuiRefresh() {
         new javax.swing.Timer(500, e -> {
             GUI g = GUI.getMyGui();
@@ -131,23 +141,7 @@ public class Main extends IndexingEngine {
             }
             // NEW: Push the SQLite disk I/O off the UI thread!
             // Using a single background thread instead of spawning a new one every 500ms
-            DatabaseCommitTask.trigger();
+            DatabaseEngine.DatabaseCommitTask.trigger();
         }).start();
-    }
-
-    private static class DatabaseCommitTask {
-        private static final java.util.concurrent.atomic.AtomicBoolean running = new java.util.concurrent.atomic.AtomicBoolean(false);
-
-        public static void trigger() {
-            if (running.compareAndSet(false, true)) {
-                new Thread(() -> {
-                    try {
-                        DatabaseEngine.commit();
-                    } finally {
-                        running.set(false);
-                    }
-                }, "db-commit").start();
-            }
-        }
     }
 }

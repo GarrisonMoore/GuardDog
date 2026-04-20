@@ -26,10 +26,16 @@ public class ParseStatus {
         printStatus();
     }
 
+    /**
+     * Increments the count for logs parsed using the universal heuristic parser.
+     */
     public static synchronized void incrementUniversal() {
         universalCount++;
     }
 
+    /**
+     * Prints the current processing status to the console.
+     */
     private static void printStatus() {
         String status = String.format(
                 "\rBSD: %d | RFC5424: %d | JSON: %d | Universal: %d" ,
