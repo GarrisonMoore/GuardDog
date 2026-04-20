@@ -9,13 +9,13 @@ I. GETTING STARTED
 
 ### Download the executable - https://github.com/GarrisonMoore/GuardDog/releases/tag/1.0.1
 
-You can launch the application by passing a log file as an argument or by using the built-in file chooser:
+#### You can launch the application by passing a log file as an argument or by using the built-in file chooser:
 
-### Standard execution:
+#### Standard execution:
 ```bash
 java -jar GuardDogProcessor.jar
 ```         
-### Launch via Command Line:
+#### Launch via Command Line:
 ```bash
 java -jar GuardDogProcessor.jar /path/to/log.file
 ```
