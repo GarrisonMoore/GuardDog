@@ -27,7 +27,7 @@ public class ReadmeGUI {
 
         textPane.setBackground(LOG_BG);
 
-        JFrame frame = new JFrame("Guard Dog Processor - ReadMe");
+        JFrame frame = new JFrame("LasiLog - ReadMe");
 
         frame.setDefaultCloseOperation(JFrame.DISPOSE_ON_CLOSE);
         frame.setSize(500, 800);
@@ -42,15 +42,15 @@ public class ReadmeGUI {
                 <html>
                   <body style="font-family:Segoe UI, Arial, sans-serif; background-color:#0f0f0f; color:#e6e6e6; margin:16px;">
                     <div style="max-width:760px;">
-                      <h1 style="color:#0096ff; margin-bottom:6px;">Guard Dog Processor</h1>
+                      <h1 style="color:#0096ff; margin-bottom:6px;">LasiLog</h1>
                       <p style="color:#bdbdbd; font-size:13px; margin-top:0;">
                         A Log Aggregation and Monitoring System
                       </p>
 
                       <p>
-                        The Guard Dog Processor is a Java-based log aggregation, parsing, and monitoring system designed to tail system logs in real-time.
+                        The LasiLog is a Java-based log aggregation, parsing, and monitoring system designed to tail system logs in real-time.
                         It features a modern, dark-themed GUI for sorting, searching, and viewing logs via multiple filters such as Time, Hostname, Category, and Severity.
-                        This application was designed in conjunction with the "Guard Dog NOC Bridge" project, a custom built Debian 13 syslog aggregator OS.
+                        This application was designed in conjunction with the "LasiLog" project, a custom built Debian 13 syslog aggregator OS.
                       </p>
 
                       <h2 style="color:#0096ff;">Features</h2>

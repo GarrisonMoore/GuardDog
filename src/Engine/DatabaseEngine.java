@@ -3,7 +3,7 @@ package Engine;
 import java.sql.*;
 
 /**
- * SQLite persistence layer for Guard Dog logs.
+ * SQLite persistence layer for LasiLog logs.
  * Stores processed LogObjects so data survives restarts.
  */
 /**
@@ -12,7 +12,7 @@ import java.sql.*;
  */
 public class DatabaseEngine {
 
-    private static final String DB_URL = "jdbc:sqlite:guarddog_logs.db";
+    private static final String DB_URL = "jdbc:sqlite:LasiLog_logs.db";
     private static Connection connection;
 
     private static PreparedStatement insertPs;

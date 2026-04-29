@@ -6,7 +6,7 @@
 
 I. GETTING STARTED
 ----------------------
-Download and launch the executable - https://github.com/GarrisonMoore/GuardDog/releases/download/1.0.1/GuardDogProcessor.jar
+Download and launch the executable - https://github.com/GarrisonMoore/LasiLog/releases/download/1.0.1/LasiLog.jar
 
 Or launch via command line:
 #### Standard execution with file selector:
@@ -67,7 +67,7 @@ IV. ARCHITECTURAL TIER BREAKDOWN
     - HOT STORAGE: IndexingEngine.java manages an in-memory datastore using
       ConcurrentHashMap and SkipListMaps for instantaneous GUI filtering.
     - COLD STORAGE: DatabaseEngine.java ensures every processed 'LogObject'
-      is committed to 'guarddog_logs.db' using asynchronous batching to 
+      is committed to 'LasiLog_logs.db' using asynchronous batching to 
       prevent UI latency.
 
 

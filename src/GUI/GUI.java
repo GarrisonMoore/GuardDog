@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * The main GUI window for the Guard Dog NOC Bridge application.
+ * The main GUI window for the LasiLog application.
  * Manages the layout and coordination between various UI panels.
  */
 public class GUI extends JFrame {
@@ -36,7 +36,7 @@ public class GUI extends JFrame {
      * Constructs the main GUI frame and initializes its components.
      */
     public GUI() {
-        setTitle("Guard Dog Processor - Log Management Console");
+        setTitle("LasiLog - Log Management Console");
         setSize(1600, 800);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setBackground(GUIConstants.PANEL_BG);

@@ -17,7 +17,7 @@ public class SplashScreen extends JFrame {
     public SplashScreen() {
         // Remove window decorations
         setUndecorated(true);
-        setTitle("Guard Dog NOC Bridge - Loading");
+        setTitle("LasiLog - Loading Database");
         setSize(500, 300);
         setLocationRelativeTo(null); // Center on screen
         setLayout(new BorderLayout());
@@ -35,7 +35,7 @@ public class SplashScreen extends JFrame {
         gbc.fill = GridBagConstraints.HORIZONTAL;
         gbc.insets = new Insets(10, 40, 10, 40);
 
-        JLabel titleLabel = new JLabel("Guard Dog NOC Bridge", SwingConstants.CENTER);
+        JLabel titleLabel = new JLabel("LasiLog", SwingConstants.CENTER);
         titleLabel.setFont(new Font("SansSerif", Font.BOLD, 24));
         titleLabel.setForeground(Color.WHITE);
         gbc.gridy = 0;

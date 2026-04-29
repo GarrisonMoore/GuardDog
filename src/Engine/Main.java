@@ -11,20 +11,14 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
- * Main entry point for the Guard Dog NOC Bridge application.
+ * Main entry point for the LasiLog application.
  * This class initializes the database, configures the UI look-and-feel,
  * and starts the log indexing process.
  */
 public class Main {
-
-    /**
-     * Entry point for the application.
-     * @param args Command line arguments.
-     * @throws InterruptedException If initialization is interrupted.
-     */
     public static void main(String[] args) throws InterruptedException {
 
-        System.out.println("DEBUG: Guard Dog NOC Bridge - Optimization Branch Active");
+        System.out.println("DEBUG: Starting up LasiLog...");
         System.out.println("DEBUG: Loading database history...");
 
         // Using FlatDarkLaf for a modern look
@@ -97,7 +91,7 @@ public class Main {
             // 2. If no command line argument, open a GUI File Chooser
             JFileChooser fileChooser = new JFileChooser();
             fileChooser.setPreferredSize(new Dimension(600, 600));
-            fileChooser.setDialogTitle("Select Log File for Guard Dog NOC");
+            fileChooser.setDialogTitle("Select Log File for LasiLog");
 
             // Defaulting the starting directory to /var/log since that's where your logs usually sit
             File defaultDir = new File("/var/log");
