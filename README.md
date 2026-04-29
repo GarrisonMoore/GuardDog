@@ -11,11 +11,11 @@ Download and launch the executable - https://github.com/GarrisonMoore/GuardDog/r
 Or launch via command line:
 #### Standard execution with file selector:
 ```bash
-java -jar GuardDogProcessor.jar
+java -jar LasiLog.jar
 ```         
 #### Launch with target log:
 ```bash
-java -jar GuardDogProcessor.jar /path/to/log.file
+java -jar LasiLog.jar /path/to/log.file
 ```
 
 II. OPERATIONAL MISSION
@@ -23,7 +23,7 @@ II. OPERATIONAL MISSION
 
 Network administrators typically have to tape together multiple different log aggregation tools to monitor their environments, ultimately suffering from a "Legacy Bottleneck" where high-volume telemetry causes GUI saturation and stalls incident response.
 
-Guard Dog is built to replace that fragmented workflow with an all-in-one solution. It serves as a high-performance, agnostic ingestion engine that utilizes a chain-of-responsibility multi-parser architecture to normalize raw data streams. The result is a unified, highly responsive Network Operations Center (NOC) dashboard that brings every log into one searchable interface without the lag.
+LasiLog is built to replace that fragmented workflow with an all-in-one solution. It serves as a high-performance, agnostic ingestion engine that utilizes a chain-of-responsibility multi-parser architecture to normalize raw data streams. The result is a unified, highly responsive Network Operations Center (NOC) dashboard that brings every log into one searchable interface without the lag.
 
 
 III. SYSTEM SPECIFICATIONS
